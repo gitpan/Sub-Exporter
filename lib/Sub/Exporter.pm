@@ -12,13 +12,13 @@ Sub::Exporter - a sophisticated exporter for custom-built routines
 
 =head1 VERSION
 
-version 0.90
+version 0.91
 
-  $Id: /my/cs/projects/export/trunk/lib/Sub/Exporter.pm 19737 2006-03-13T16:24:13.590498Z rjbs  $
+  $Id: /my/cs/projects/export/trunk/lib/Sub/Exporter.pm 20024 2006-03-17T13:58:11.103404Z rjbs  $
 
 =cut
 
-our $VERSION = '0.90';
+our $VERSION = '0.91';
 
 =head1 SYNOPSIS
 
@@ -114,7 +114,7 @@ subroutines:
 
   sub _curry_class {
     my ($class, $name) = @_;
-    sub { $class->$name(@_);
+    sub { $class->$name(@_); };
   }
 
 Because of the way that exporters and Sub::Exporter work, any package that
@@ -183,10 +183,10 @@ The following keys are valid in C<%config>:
 The C<exports> list may be provided as an array reference or a hash reference.
 The list is processed in such a way that the following are equivalent:
 
-  { exports => [ qw(foo bar baz), quux => \&quuz_generator ] }
+  { exports => [ qw(foo bar baz), quux => \&quux_generator ] }
 
   { exports =>
-    { foo => undef, bar => undef, baz => undef, quux => \&quuz_generator } }
+    { foo => undef, bar => undef, baz => undef, quux => \&quux_generator } }
 
 Generators are coderefs that return coderefs.  They are called with four
 parameters:
@@ -211,7 +211,7 @@ would result in the following call to C<&build_reformatter>:
     { defaults => { eol => 'CR' } },
   );
 
-The returned coderef (<$code>) would then be installed as C<make_narrow> in the
+The returned coderef (C<$code>) would then be installed as C<make_narrow> in the
 calling package.
 
 =head2 C<groups> Configuration
@@ -337,6 +337,19 @@ Normally, C<-as> will contain an alternate name for the routine.  It may,
 however, contain a reference to a scalar.  If that is the case, a reference the
 generated routine will be placed in the scalar referenced by C<-as>.  It will
 not be installed into the calling package.
+
+=head2 Special Exporter Arguments
+
+The generated exporter accept some special options, which may be passed as the
+first argument, in a hashref.
+
+These options are:
+
+  into_level - how far up the caller stack to look for a target (default 0)
+  into       - an explicit target (package) into which to export routines
+
+Providing both C<into_level> and C<into> will cause an exception to be
+thrown.
 
 =cut
 
@@ -587,7 +600,16 @@ sub build_exporter {
 
   my $import = sub {
     my ($class) = shift;
-    my ($into)  = caller(0);
+
+    # XXX: clean this up -- rjbs, 2006-03-16
+    my $import_arg = (ref $_[0]) ? shift(@_) : {};
+    Carp::croak q(into and into_level may not both be supplied to exporter)
+      if defined $import_arg->{into} and defined $import_arg->{into_level};
+
+    my $into
+      = defined $import_arg->{into}       ? $import_arg->{into}
+      : defined $import_arg->{into_level} ? caller($import_arg->{into_level})
+      :                                     caller(0);
 
     # this builds a AOA, where the inner arrays are [ name => value_ref ]
     my $import_args = _canonicalize_opt_list([ @_ ]);
@@ -637,6 +659,21 @@ sub _export {
     $as,
   );
 }
+
+## Cute idea, possibly for future use: also supply an "unimport" for:
+## no Module::Whatever qw(arg arg arg);
+# sub _unexport {
+#   my (undef, undef, undef, undef, undef, $as, $into) = @_;
+# 
+#   if (ref $as eq 'SCALAR') {
+#     undef $$as;
+#   } elsif (ref $as) {
+#     Carp::croak "invalid reference type for $as: " . ref $as;
+#   } else {
+#     no strict 'refs';
+#     delete &{$into . '::' . $as};
+#   }
+# }
 
 sub _generate {
   my ($class, $generator, $name, $arg, $collection, $as, $into) = @_;
@@ -805,7 +842,7 @@ Ricardo SIGNES, C<< <rjbs@cpan.org> >>
 
 Hans Dieter Pearcey provided helpful advice while I was writing Sub::Exporter.
 Ian Langworth and Shawn Sorichetti asked some good questions and hepled me
-improve my documentation quite a bit.  Thanks, guys!
+improve my documentation quite a bit.  Thanks, guys! 
 
 =head1 BUGS
 

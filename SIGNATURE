@@ -14,9 +14,9 @@ not run its Makefile.PL or Build.PL.
 -----BEGIN PGP SIGNED MESSAGE-----
 Hash: SHA1
 
-SHA1 ffe7801cb85049394c14854c4538248020f7021f Changes
-SHA1 93a350d1ba5e8025acd8fb43079323a03287fd09 MANIFEST
-SHA1 8ec35a1f8dc7492383389f70b18461d6ee5c4f40 META.yml
+SHA1 30b43cf08271269b1318e34682fafdc4ce62b1b8 Changes
+SHA1 a50954b0e4ae535ec7e2c75b55daf6987af89676 MANIFEST
+SHA1 506043fd44ba63bf74ad2ae8041591313690e8e6 META.yml
 SHA1 943d9a6818605c9f518ceb2d4f7d1a691416ba4b Makefile.PL
 SHA1 36cdc8bcbdb15eb0ba6bd917b7135a592f2efa9e README
 SHA1 ec2e3f89726d91338c33adb8d9ab85889671546a inc/Module/Install.pm
@@ -27,8 +27,9 @@ SHA1 2fd3502290372f63ea3c3c230ab4d0bffacc5740 inc/Module/Install/Makefile.pm
 SHA1 b3f60463cb90ba74f1db41598a49478257b1c1ff inc/Module/Install/Metadata.pm
 SHA1 542a6aa745e8b3649e4af07e913baaeb70611d90 inc/Module/Install/Win32.pm
 SHA1 1dd03ca2a5fe24536382d2636bde32a7fefac57e inc/Module/Install/WriteAll.pm
-SHA1 d464fb627136eba229ac57a0848b98d97a7a123a lib/Sub/Exporter.pm
+SHA1 f23dea0d93972c36ff4feadb4f9268a331cd3df0 lib/Sub/Exporter.pm
 SHA1 0eb45101be8758505a7bf8d64e2aac5255a294c0 lib/Sub/Exporter/Tutorial.pod
+SHA1 841814c322cd8248a52ecf59d8753be4fa36713d t/caller-level.t
 SHA1 dc075a2bc4b9cb639f8c9e62eba02f1483e34e6f t/collection.t
 SHA1 076af2b244ef80f9daf8daecaa45122850f837cc t/expand-group.t
 SHA1 fc3f1af8eb168abcb8e600b90298e1e416bf673b t/faux-export.t
@@ -47,7 +48,7 @@ SHA1 327e6b0a4d3905e8c7a1b2b607b3faf9f90f875d t/real-export-setup.t
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.1 (Darwin)
 
-iD8DBQFEFf+T5IEwYcR13KMRAnp5AJwKRWh1hEy84ifBRanQcMircFp/GgCfaD/o
-07QiYIc6hx4CUkvKB5+mgRE=
-=2da+
+iD8DBQFEGsLN5IEwYcR13KMRAk8zAJ9touHfgyJauqTCgmucPcb6b8uFzwCfVdG2
+Pj9R/8SHEXbLybh4x4Xqbu4=
+=dqXe
 -----END PGP SIGNATURE-----
