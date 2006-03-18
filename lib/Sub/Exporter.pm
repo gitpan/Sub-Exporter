@@ -12,13 +12,13 @@ Sub::Exporter - a sophisticated exporter for custom-built routines
 
 =head1 VERSION
 
-version 0.91
+version 0.92
 
-  $Id: /my/cs/projects/export/trunk/lib/Sub/Exporter.pm 20024 2006-03-17T13:58:11.103404Z rjbs  $
+  $Id: /my/cs/projects/export/trunk/lib/Sub/Exporter.pm 20044 2006-03-18T00:49:53.014629Z rjbs  $
 
 =cut
 
-our $VERSION = '0.91';
+our $VERSION = '0.92';
 
 =head1 SYNOPSIS
 
@@ -364,8 +364,11 @@ thrown.
 #              every value followed by undef becomes a pair: [ value => undef ]
 #              otherwise, it becomes [ value => undef ] like so:
 #              [ "a", "b", [ 1, 2 ] ] -> [ [ a => undef ], [ b => [ 1, 2 ] ] ]
+#
+# It would be nice for this 'canonicalized' form to have a canonical order,
+# since it could be coming from a hash.
 sub _canonicalize_opt_list {
-  my ($opt_list, $require_unique, $must_be) = @_;
+  my ($opt_list, $moniker, $require_unique, $must_be) = @_;
 
   return [] unless $opt_list;
 
@@ -374,10 +377,15 @@ sub _canonicalize_opt_list {
   ] if ref $opt_list eq 'HASH';
 
   my @return;
+  my %seen;
 
   for (my $i = 0; $i < @$opt_list; $i++) {
     my $name = $opt_list->[$i];
     my $value;
+
+    if ($require_unique) {
+      Carp::croak "multiple definitions provided for $name" if $seen{$name}++;
+    }
 
     if    ($i == $#$opt_list)             { $value = undef;            }
     elsif (not defined $opt_list->[$i+1]) { $value = undef; $i++       }
@@ -385,19 +393,14 @@ sub _canonicalize_opt_list {
     else                                  { $value = undef;            }
 
     if ($must_be and defined $value) {
-      $must_be = [ $must_be ] unless ref $must_be;
       my $ref = ref $value;
-      Carp::croak "$ref-ref values are not allowed"
-        unless grep { $ref eq $_ } @$must_be;
+      my $ok  = ref $must_be ? (grep { $ref eq $_ } @$must_be)
+              :                ($ref eq $must_be);
+
+      Carp::croak "$ref-ref values are not valid in $moniker opt list" if !$ok;
     }
 
     push @return, [ $name => $value ];
-  }
-
-  if ($require_unique) {
-    my %seen;
-    map { Carp::croak "multiple definitions provided for $_" if $seen{$_}++ }
-    map { $_->[0] } @return;
   }
 
   return \@return;
@@ -405,11 +408,11 @@ sub _canonicalize_opt_list {
 
 # This turns a canonicalized opt_list (see above) into a hash.
 sub _expand_opt_list {
-  my ($opt_list, $must_be) = @_;
+  my ($opt_list, $moniker, $must_be) = @_;
   return {} unless $opt_list;
   return $opt_list if ref $opt_list eq 'HASH';
 
-  $opt_list = _canonicalize_opt_list($opt_list, 1, $must_be);
+  $opt_list = _canonicalize_opt_list($opt_list, $moniker, 1, $must_be);
   my %hash = map { $_->[0] => $_->[1] } @$opt_list;
   return \%hash;
 }
@@ -419,8 +422,8 @@ sub _expand_opt_list {
 sub _group_name {
   my ($name) = @_;
 
-  return unless $name =~ s/\A[-:]//;
-  return $name;
+  return if (index '-:', (substr $name, 0, 1)) == -1;
+  return substr $name, 1;
 }
 
 # \@groups is a canonicalized opt list of exports and groups this returns
@@ -435,27 +438,28 @@ sub _expand_groups {
   my @groups = @$groups;
 
   for my $i (reverse 0 .. $#$groups) {
-    # this isn't a group, let it be
     if (my $group_name = _group_name($groups[$i][0])) {
-      # we already dealt with this, remove it
-      if ($seen->{ $group_name }) {
-        splice @groups, $i, 1;
-        next;
-      }
+      my $seen = { %$seen }; # faux-dynamic scoping
 
-      # rewrite the group
       splice @groups, $i, 1,
         _expand_group($class, $config, $groups[$i], $collection, $seen, $merge);
     } else {
+      # there's nothing to munge in this export's args
       next unless my %merge = %$merge;
+
+      # we have things to merge in; do so
       my $prefix = (delete $merge{-prefix}) || '';
       my $suffix = (delete $merge{-suffix}) || '';
+
       if (ref $groups[$i][1] eq 'CODE') {
-         $groups[$i][0] = $prefix . $groups[$i][0] . $suffix;
+        # this entry was build by a group generator
+        $groups[$i][0] = $prefix . $groups[$i][0] . $suffix;
       } else {
-        my $as = ref $groups[$i][1]{-as}
-          ? $groups[$i][1]{-as}
-          : $prefix . ($groups[$i][1]{-as}||$groups[$i][0]) . $suffix;
+        my $as
+          = ref $groups[$i][1]{-as} ? $groups[$i][1]{-as}
+          :     $groups[$i][1]{-as} ? $prefix . $groups[$i][1]{-as} . $suffix
+          :                           $prefix . $groups[$i][0]      . $suffix;
+
         $groups[$i][1] = { %{ $groups[$i][1] }, %merge, -as => $as };
       }
     }
@@ -472,6 +476,11 @@ sub _expand_group {
   my ($group_name, $group_arg) = @$group;
   $group_name = _group_name($group_name);
 
+  Carp::croak qq(group "$group_name" is not exported by the $class module)
+    unless exists $config->{groups}{$group_name};
+
+  return if $seen->{$group_name}++;
+
   if (ref $group_arg) {
     my $prefix = (delete $merge->{-prefix}||'') . ($group_arg->{-prefix}||'');
     my $suffix = ($group_arg->{-suffix}||'') . (delete $merge->{-suffix}||'');
@@ -482,11 +491,6 @@ sub _expand_group {
       ($suffix ? (-suffix => $suffix) : ()),
     };
   }
-
-  Carp::croak qq(group "$group_name" is not exported by the $class module)
-    unless exists $config->{groups}{$group_name};
-
-  $seen->{$group_name} = 1;
   
   my $exports = $config->{groups}{$group_name};
 
@@ -499,7 +503,7 @@ sub _expand_group {
       _expand_groups($class, $config, $stuff, $collection, $seen, $merge)
     };
   } else {
-    $exports = _canonicalize_opt_list($exports);
+    $exports = _canonicalize_opt_list($exports, "$group_name exports");
 
     return @{
       _expand_groups($class, $config, $exports, $collection, $seen, $merge)
@@ -513,19 +517,23 @@ sub _collect_collections {
   my ($config, $import_args) = @_;
   my %collection;
 
-  for my $collection (keys %{ $config->{collectors} }) {
-    next unless my @indexes
-      = grep { $import_args->[$_][0] eq $collection } (0 .. $#$import_args);
+  my @collections
+    = map  { splice @$import_args, $_, 1 }
+      grep { exists $config->{collectors}{ $import_args->[$_][0] } }
+      reverse 0 .. $#$import_args;
 
-    Carp::croak "collection $collection provided multiple times in import"
-      if @indexes > 1;
+  my %seen;
+  for my $collection (@collections) {
+    my ($name, $value) = @$collection;
 
-    my $value = splice @$import_args, $indexes[0], 1;
-    $collection{ $collection } = $value->[1];
+    Carp::croak "collection $name provided multiple times in import"
+      if $seen{ $name }++;
 
-    if (ref(my $validator = $config->{collectors}{$collection})) {
-      Carp::croak "collection $collection failed validation"
-        unless $validator->($collection{$collection});
+    $collection{ $name } = $value;
+
+    if (ref(my $validator = $config->{collectors}{$name})) {
+      Carp::croak "collection $name failed validation"
+        unless $validator->($value);
     }
   }
 
@@ -539,11 +547,19 @@ sub _collect_collections {
 This routine builds and installs an C<import> routine.  It is called with one
 argument, a hashref containing the exporter configuration.  Using this, it
 builds an exporter and installs it into the calling package with the name
-"import."  In addition to the normal exporter configuration, two named
+"import."  In addition to the normal exporter configuration, a few named
 arguments may be passed in the hashref:
 
-  into - into what package should the exporter be installed (defaults to caller)
-  as   - what name should the installed exporter be given (defaults to "import")
+  into       - into what package should the exporter be installed
+  into_level - into what level up the stack should the exporter be installed
+  as         - what name should the installed exporter be given
+
+By default the exporter is installed with the name C<import> into the immediate
+caller of C<setup_exporter>.  In other words, if your package calls
+C<setup_exporter> without providing any of the three above arguments, it will
+have an C<import> routine installed.
+
+Providing both C<into> and C<into_level> will cause an exception to be thrown.
 
 The exporter is built by C<L</build_exporter>>.
 
@@ -556,8 +572,14 @@ sub setup_exporter {
   my ($config, $special)  = @_;
   $special ||= {};
 
-  my $into = delete $config->{into} || caller(0);
+  Carp::croak q(into and into_level may not both be supplied to exporter)
+    if exists $config->{into} and exists $config->{into_level};
+
   my $as   = delete $config->{as}   || 'import';
+  my $into
+    = exists $config->{into}       ? delete $config->{into}
+    : exists $config->{into_level} ? caller(delete $config->{into_level})
+    :                                caller(0);
 
   my $import = build_exporter($config, $special);
 
@@ -579,6 +601,39 @@ the exporter as a package's import routine.
 
 =cut
 
+sub _key_intersection {
+  my ($x, $y) = @_;
+  my %seen = map { $_ => 1 } keys %$x;
+  my @names = grep { $seen{$_} } keys %$y;
+}
+
+my %valid_config_key;
+BEGIN { %valid_config_key = map { $_ => 1 } qw(exports groups collectors) }
+
+sub _rewrite_config {
+  my ($config) = @_;
+
+  if (my @keys = grep { not exists $valid_config_key{$_} } keys %$config) {
+    Carp::croak "unknown options (@keys) passed to Sub::Exporter";
+  }
+
+  $config->{$_} = _expand_opt_list($config->{$_}, $_, 'CODE')
+    for qw(exports collectors);
+
+  if (my @names = _key_intersection(@$config{qw(exports collectors)})) {
+    Carp::croak "names (@names) used in both collections and exports";
+  }
+
+  $config->{groups}
+    = _expand_opt_list($config->{groups}, 'groups', [ 'HASH', 'CODE' ]);
+
+  # by default, export nothing
+  $config->{groups}{default} ||= [];
+
+  # by default, build an all-inclusive 'all' group
+  $config->{groups}{all} ||= [ keys %{ $config->{exports} } ];
+}
+
 sub build_exporter {
   my ($config, $special) = @_;
   $special ||= {};
@@ -586,25 +641,16 @@ sub build_exporter {
   # this option name, if nothing else, needs to be improved before it is
   # accepted as a core feature -- rjbs, 2006-03-09
   $special->{export} ||= \&_export;
+
+  _rewrite_config($config);
   
-  $config->{$_} = _expand_opt_list($config->{$_}, 'CODE')
-    for qw(exports collectors);
-
-  $config->{groups} = _expand_opt_list($config->{groups}, [ 'HASH', 'CODE' ]);
-
-  # by default, export nothing
-  $config->{groups}{default} ||= [];
-
-  # by default, build an all-inclusive 'all' group
-  $config->{groups}{all} ||= [ keys %{ $config->{exports} } ];
-
   my $import = sub {
     my ($class) = shift;
 
     # XXX: clean this up -- rjbs, 2006-03-16
     my $import_arg = (ref $_[0]) ? shift(@_) : {};
     Carp::croak q(into and into_level may not both be supplied to exporter)
-      if defined $import_arg->{into} and defined $import_arg->{into_level};
+      if exists $import_arg->{into} and exists $import_arg->{into_level};
 
     my $into
       = defined $import_arg->{into}       ? $import_arg->{into}
@@ -626,6 +672,7 @@ sub build_exporter {
       my ($generator, $as);
 
       if ($arg and ref $arg eq 'CODE') {
+        # This is the case when a group generator has inserted name/code pairs.
         $generator = sub { $arg };
         $as = $name;
       } else {
@@ -648,13 +695,19 @@ sub build_exporter {
   return $import;
 }
 
+# XXX: Consider implementing a _export_args routine that takes the arguments to
+# _export and returns a hash of named params.  This lets other people write
+# exporters without tying me down to one set of @_ contents.  Maybe that's
+# premature guarantee, though, unless I guarantee that @_ will never get
+# /smaller/.
+
 # the default installer; it does what Sub::Exporter promises: call generators
 # with the three normal arguments, then install the code into the target
 # package
 sub _export {
   my ($class, $generator, $name, $arg, $collection, $as, $into) = @_;
   _install(
-    _generate($class, $generator, $name, $arg, $collection, $as, $into),
+    _generate($class, $generator, $name, $arg, $collection),
     $into,
     $as,
   );
@@ -676,7 +729,7 @@ sub _export {
 # }
 
 sub _generate {
-  my ($class, $generator, $name, $arg, $collection, $as, $into) = @_;
+  my ($class, $generator, $name, $arg, $collection) = @_;
 
   my $code = $generator
            ? $generator->($class, $name, $arg, $collection)
