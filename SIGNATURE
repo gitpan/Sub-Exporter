@@ -14,9 +14,9 @@ not run its Makefile.PL or Build.PL.
 -----BEGIN PGP SIGNED MESSAGE-----
 Hash: SHA1
 
-SHA1 378fcb30c20277212c200ad4cca88e866ca9e506 Changes
-SHA1 e18c8f745ffce8681bcef379fff045efdc9b0f10 MANIFEST
-SHA1 dc50776afb7534948457db11c78fa0bb324f2a49 META.yml
+SHA1 2002b246815babe84a5b9aebe9f1bfadb8ee17b1 Changes
+SHA1 95ff291aebe2ed94d7c70d97efccdc04ea70a6cd MANIFEST
+SHA1 fbcf2bdc677defcb32cb409b24d629888fa63679 META.yml
 SHA1 943d9a6818605c9f518ceb2d4f7d1a691416ba4b Makefile.PL
 SHA1 36cdc8bcbdb15eb0ba6bd917b7135a592f2efa9e README
 SHA1 ec2e3f89726d91338c33adb8d9ab85889671546a inc/Module/Install.pm
@@ -27,29 +27,29 @@ SHA1 2fd3502290372f63ea3c3c230ab4d0bffacc5740 inc/Module/Install/Makefile.pm
 SHA1 b3f60463cb90ba74f1db41598a49478257b1c1ff inc/Module/Install/Metadata.pm
 SHA1 542a6aa745e8b3649e4af07e913baaeb70611d90 inc/Module/Install/Win32.pm
 SHA1 1dd03ca2a5fe24536382d2636bde32a7fefac57e inc/Module/Install/WriteAll.pm
-SHA1 4f3f1be0f19cf3e02b6c8b32ac841ce10377b1a4 lib/Sub/Exporter.pm
+SHA1 306afc142637be2d222f96600e17c979dc954e5a lib/Sub/Exporter.pm
 SHA1 0eb45101be8758505a7bf8d64e2aac5255a294c0 lib/Sub/Exporter/Tutorial.pod
 SHA1 dc075a2bc4b9cb639f8c9e62eba02f1483e34e6f t/collection.t
 SHA1 7ef5938672249b8b0c5a80babb9a4818a5dbda59 t/expand-group.t
-SHA1 fc3f1af8eb168abcb8e600b90298e1e416bf673b t/faux-export.t
+SHA1 3a2f67f71995dd619c63b3d6daa93571d0ceacd2 t/faux-export.t
 SHA1 b1c03c58293674d7ebd7517ef714d393e4870492 t/group-generator.t
 SHA1 2250720a32de5d398dbe8e667eca12881626b65c t/inherited.t
 SHA1 3c3d98d6e6826fde3b676cc33a266857f9f0a8cb t/into-level.t
-SHA1 bb1b9559d0e139b444c9003e72e1607427167dba t/lib/Test/SubExportA.pm
-SHA1 a16d7621df0af3f4579cb40718726959dd79bccb t/lib/Test/SubExportB.pm
-SHA1 4631b760640251be7cd8448efb9e7d3431220411 t/lib/Test/SubExportC.pm
+SHA1 8983ceef665e579b4e394f47d3ea77c8a0d6758e t/lib/Test/SubExporter/DashSetup.pm
+SHA1 85433dc42004e119e3ea0665f570172f98dd7dde t/lib/Test/SubExporter/GroupGen.pm
+SHA1 4766d146097a1bbf4f2ce3d7ab6c4a133271d78b t/lib/Test/SubExporter/s_e.pm
 SHA1 5fe66719eb78bd51ee827f56252694290166462d t/opt-canon.t
 SHA1 891d6c15f2d422bd4c3abd29035be9391507c7b6 t/opt-expand.t
 SHA1 6f1a6c256b079144a042c0d033c7077bdf344d52 t/pod-coverage.t
 SHA1 44c6c10542be989f80a8a22d6bc48ac8c81ee627 t/pod.t
-SHA1 b62e22e026e5805be63e228e7aaa10587460cbcc t/real-export-groupgen.t
-SHA1 b4110ccdbdaf4e88016ecef9b1f86b2a3d798305 t/real-export-href.t
-SHA1 327e6b0a4d3905e8c7a1b2b607b3faf9f90f875d t/real-export-setup.t
+SHA1 180a5c066b7481eb626ed60ff1e790651469a7de t/real-export-groupgen.t
+SHA1 b38bb0bff71c2bea3d08cbbfee125ecc2518bed8 t/real-export-href.t
+SHA1 51d18d8d72f7998364860e9c84803fccff411bee t/real-export-setup.t
 SHA1 136130d41ac445feda18fc323bbfd70e42fbcb0a t/valid-config.t
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.1 (Darwin)
 
-iD8DBQFEG1m05IEwYcR13KMRAmbOAJ456Ny37vVTQejmVdcNc8CiP5kZ5gCfYM/k
-BYHUt4k13vEjjJ2IBqpeONw=
-=lmbx
+iD8DBQFEJ2s05IEwYcR13KMRAj35AJ4tl3SKp7JaQhmsCyWN8+DSI9RA9wCfS9x7
+m2rt3NwGlPVueBcewQdK6Y0=
+=cyKJ
 -----END PGP SIGNATURE-----

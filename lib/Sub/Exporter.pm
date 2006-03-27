@@ -12,13 +12,13 @@ Sub::Exporter - a sophisticated exporter for custom-built routines
 
 =head1 VERSION
 
-version 0.92
+version 0.93
 
-  $Id: /my/cs/projects/export/trunk/lib/Sub/Exporter.pm 20044 2006-03-18T00:49:53.014629Z rjbs  $
+  $Id: /my/cs/projects/export/trunk/lib/Sub/Exporter.pm 20304 2006-03-27T04:20:07.720136Z rjbs  $
 
 =cut
 
-our $VERSION = '0.92';
+our $VERSION = '0.93';
 
 =head1 SYNOPSIS
 
@@ -178,7 +178,7 @@ The following keys are valid in C<%config>:
   collectors - a list of names into which values are collected for use in
                routine generation; each name may be followed by a validator
 
-=head2 C<exports> Configuration
+=head2 Export Configuration
 
 The C<exports> list may be provided as an array reference or a hash reference.
 The list is processed in such a way that the following are equivalent:
@@ -214,7 +214,7 @@ would result in the following call to C<&build_reformatter>:
 The returned coderef (C<$code>) would then be installed as C<make_narrow> in the
 calling package.
 
-=head2 C<groups> Configuration
+=head2 Group Configuration
 
 The C<groups> list can be passed in the same forms as C<exports>.  Groups must
 have values to be meaningful, which may either list exports that make up the
@@ -270,7 +270,7 @@ configured, it will be empty, and nothing will happen.
 Another group is also created if not defined: C<all>.  The C<all> group
 contains all the exports from the exports list.
 
-=head2 C<collectors> Configuration
+=head2 Collector Configuration
 
 The C<collectors> entry in the exporter configuration gives names which, when
 found in the import call, have their values collected and passed to every
@@ -310,6 +310,19 @@ exception is thrown.  We could ensure that no one tries to set a global data
 default easily:
 
   collectors => { defaults => sub { return (exists $_[0]->{data}) ? 0 : 1 } }
+
+Collector coderefs can also be used as hooks to perform arbitrary actions
+before anything is exported.  B<Warning!>  This feature is experimental and may
+change in the future.
+
+When the coderef is called, it is actually passed these values:
+
+  $value - the value given for the collector in the args to import
+  $name  - the name of the collector
+ \%config      - the exporter configuration
+ \@import_args - the arguments passed to the exporter, sans collections
+  $class - the package on which the importer was called
+  $into  - the package into which exports will be exported
 
 =head1 CALLING THE EXPORTER
 
@@ -491,7 +504,7 @@ sub _expand_group {
       ($suffix ? (-suffix => $suffix) : ()),
     };
   }
-  
+
   my $exports = $config->{groups}{$group_name};
 
   if (ref $exports eq 'CODE') {
@@ -514,7 +527,7 @@ sub _expand_group {
 # Given a config and pre-canonicalized importer args, remove collections from
 # the args and return them.
 sub _collect_collections {
-  my ($config, $import_args) = @_;
+  my ($config, $import_args, $class, $into) = @_;
   my %collection;
 
   my @collections
@@ -531,9 +544,9 @@ sub _collect_collections {
 
     $collection{ $name } = $value;
 
-    if (ref(my $validator = $config->{collectors}{$name})) {
+    if (ref(my $hook = $config->{collectors}{$name})) {
       Carp::croak "collection $name failed validation"
-        unless $validator->($value);
+        unless $hook->($value, $name, $config, $import_args, $class, $into);
     }
   }
 
@@ -542,7 +555,7 @@ sub _collect_collections {
 
 =head1 SUBROUTINES
 
-=head2 C< setup_exporter >
+=head2 setup_exporter
 
 This routine builds and installs an C<import> routine.  It is called with one
 argument, a hashref containing the exporter configuration.  Using this, it
@@ -569,8 +582,7 @@ The exporter is built by C<L</build_exporter>>.
 # probably, moved to \%config.  These are also passed along to build_exporter.
 
 sub setup_exporter {
-  my ($config, $special)  = @_;
-  $special ||= {};
+  my ($config)  = @_;
 
   Carp::croak q(into and into_level may not both be supplied to exporter)
     if exists $config->{into} and exists $config->{into_level};
@@ -581,7 +593,7 @@ sub setup_exporter {
     : exists $config->{into_level} ? caller(delete $config->{into_level})
     :                                caller(0);
 
-  my $import = build_exporter($config, $special);
+  my $import = build_exporter($config);
 
   Sub::Install::install_sub({
     code => $import,
@@ -590,7 +602,7 @@ sub setup_exporter {
   });
 }
 
-=head2 C< build_exporter >
+=head2 build_exporter
 
 Given a standard exporter configuration, this routine builds and returns an
 exporter -- that is, a subroutine that can be installed as a class method to
@@ -607,10 +619,16 @@ sub _key_intersection {
   my @names = grep { $seen{$_} } keys %$y;
 }
 
+# Given the config passed to setup_exporter, which contains sugary opt list
+# data, rewrite the opt lists into hashes, catch a few kinds of invalid
+# configurations, and set up defaults.  Since the config is a reference, it's
+# rewritten in place.
 my %valid_config_key;
-BEGIN { %valid_config_key = map { $_ => 1 } qw(exports groups collectors) }
+BEGIN {
+  %valid_config_key = map { $_ => 1 } qw(exports exporter groups collectors)
+}
 
-sub _rewrite_config {
+sub _rewrite_build_config {
   my ($config) = @_;
 
   if (my @keys = grep { not exists $valid_config_key{$_} } keys %$config) {
@@ -635,15 +653,10 @@ sub _rewrite_config {
 }
 
 sub build_exporter {
-  my ($config, $special) = @_;
-  $special ||= {};
+  my ($config) = @_;
 
-  # this option name, if nothing else, needs to be improved before it is
-  # accepted as a core feature -- rjbs, 2006-03-09
-  $special->{export} ||= \&_export;
+  _rewrite_build_config($config);
 
-  _rewrite_config($config);
-  
   my $import = sub {
     my ($class) = shift;
 
@@ -653,14 +666,18 @@ sub build_exporter {
       if exists $import_arg->{into} and exists $import_arg->{into_level};
 
     my $into
-      = defined $import_arg->{into}       ? $import_arg->{into}
-      : defined $import_arg->{into_level} ? caller($import_arg->{into_level})
+      = defined $import_arg->{into}       ? delete $import_arg->{into}
+      : defined $import_arg->{into_level} ? caller(delete $import_arg->{into_level})
       :                                     caller(0);
+
+    my $export = delete $import_arg->{exporter}
+              || $config->{exporter}
+              || \&_export;
 
     # this builds a AOA, where the inner arrays are [ name => value_ref ]
     my $import_args = _canonicalize_opt_list([ @_ ]);
-    
-    my $collection = _collect_collections($config, $import_args);
+
+    my $collection = _collect_collections($config, $import_args, $class, $into);
 
     $import_args = [ [ -default => 1 ] ] unless @$import_args;
     my $to_import = _expand_groups($class, $config, $import_args, $collection);
@@ -686,9 +703,7 @@ sub build_exporter {
         $as = exists $arg->{-as} ? (delete $arg->{-as}) : $name;
       }
 
-      $special->{export}->(
-        $class, $generator, $name, $arg, $collection, $as, $into
-      );
+      $export->($class, $generator, $name, $arg, $collection, $as, $into);
     }
   };
 
@@ -754,9 +769,7 @@ sub _install {
 
 Sub::Exporter also offers its own exports: the C<setup_exporter> and
 C<build_exporter> routines described above.  It also provides a special "setup"
-group, which will setup an exporter using the parameters passed to it.  This
-group can be passed a list of subroutines names to export, instead of the
-normal configuration hash.
+group, which will setup an exporter using the parameters passed to it.
 
 =cut
 
@@ -767,9 +780,23 @@ setup_exporter({
   ],
   groups  => {
     all   => [ qw(setup_exporter build_export) ],
-    setup => { _import => { -as => 'import' } }
-  }
+    #setup => { _import => { -as => 'import' } }
+  },
+  collectors => { -setup => \&_setup },
 });
+
+sub _setup {
+  my ($value, $name, $config, $import_args, $class, $into) = @_;
+
+  if (ref $value) {
+    push @$import_args, [ _import => { -as => 'import', %$value } ];
+    return 1;
+  } else {
+    my %config = (exports => { map { @$_[0,1] } @$import_args });
+    @$import_args = [ _import => { -as => 'import', %config } ];
+    return 1;
+  }
+}
 
 =head1 COMPARISONS
 
@@ -884,6 +911,12 @@ variables for its configuration.
 =item * write a set of longer, more demonstrative examples
 
 =item * solidify the "custom build and install" interface (see C<&_export>)
+
+=item * finalize the collector-hook semantics
+
+=item * add an "always exported" group
+
+=item * consider post-export hooks
 
 =back
 
