@@ -8,14 +8,15 @@ These tests test option list expansion (from an option list into a hashref).
 
 =cut
 
-use Test::More tests => 6;
+use Sub::Install;
+use Test::More 'no_plan';
 
-BEGIN { use_ok('Sub::Exporter'); }
+BEGIN { use_ok('Data::OptList'); }
 
 # let's get a convenient copy to use:
 Sub::Install::install_sub({
-  code => '_expand_opt_list',
-  from => 'Sub::Exporter',
+  code => 'expand_opt_list',
+  from => 'Data::OptList',
   as   => 'EXP',
 });
 
@@ -48,3 +49,21 @@ is_deeply(
   { foo => { a => 1 }, ':bar' => undef, baz => undef },
   "opt list of names and values expands, ignoring undef",
 );
+
+is_deeply(
+  EXP({ foo => { a => 1 }, -bar => undef, baz => undef }, 0, 'HASH'),
+  { foo => { a => 1 }, -bar => undef, baz => undef },
+  "opt list of names and values expands with must_be",
+);
+
+is_deeply(
+  EXP({ foo => { a => 1 }, -bar => undef, baz => undef }, 0, ['HASH']),
+  { foo => { a => 1 }, -bar => undef, baz => undef },
+  "opt list of names and values expands with [must_be]",
+);
+
+eval { EXP({ foo => { a => 1 }, -bar => undef, baz => undef }, 0, 'ARRAY'); };
+like($@, qr/HASH-ref values are not/, "exception tossed on invaild ref value");
+
+eval { EXP({ foo => { a => 1 }, -bar => undef, baz => undef }, 0, ['ARRAY']); };
+like($@, qr/HASH-ref values are not/, "exception tossed on invaild ref value");

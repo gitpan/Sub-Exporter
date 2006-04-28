@@ -1,5 +1,12 @@
 Revision history for Sub-Exporter
 
+0.95
+        break out Data::OptList for future disting
+        remove an "optimization" that broke expand_opt_list
+        improve detection of group generators
+        improve data passed to hooks (if you relied on the guts, you'll break)
+        the ::Util module
+
 0.93    2006-03-26
         internal refactoring
         add more arguments to collector hook calls

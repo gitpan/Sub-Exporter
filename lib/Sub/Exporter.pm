@@ -4,7 +4,9 @@ use strict;
 use warnings;
 
 use Carp ();
-use Sub::Install;
+use Data::OptList ();
+use Scalar::Util ();
+use Sub::Install ();
 
 =head1 NAME
 
@@ -12,13 +14,13 @@ Sub::Exporter - a sophisticated exporter for custom-built routines
 
 =head1 VERSION
 
-version 0.93
+version 0.95
 
-  $Id: /my/cs/projects/export/trunk/lib/Sub/Exporter.pm 20304 2006-03-27T04:20:07.720136Z rjbs  $
+  $Id: /my/cs/projects/export/trunk/lib/Sub/Exporter.pm 21469 2006-04-25T22:18:36.213593Z rjbs  $
 
 =cut
 
-our $VERSION = '0.93';
+our $VERSION = '0.95';
 
 =head1 SYNOPSIS
 
@@ -366,70 +368,6 @@ thrown.
 
 =cut
 
-# This produces an array of arrays; the inner arrays are name/value pairs.
-# Values will be either "undef" or a reference.  $must_be is either a scalar or
-# array of scalars; it defines what kind(s) of refs may be values.  If an
-# invalid value is found, an exception is thrown.
-# possible inputs:
-#  undef    -> []
-#  hashref  -> [ [ key1 => value1 ] ... ] # non-ref values become undef
-#  arrayref -> every value followed by a ref becomes a pair: [ value => ref   ]
-#              every value followed by undef becomes a pair: [ value => undef ]
-#              otherwise, it becomes [ value => undef ] like so:
-#              [ "a", "b", [ 1, 2 ] ] -> [ [ a => undef ], [ b => [ 1, 2 ] ] ]
-#
-# It would be nice for this 'canonicalized' form to have a canonical order,
-# since it could be coming from a hash.
-sub _canonicalize_opt_list {
-  my ($opt_list, $moniker, $require_unique, $must_be) = @_;
-
-  return [] unless $opt_list;
-
-  $opt_list = [
-    map { $_ => (ref $opt_list->{$_} ? $opt_list->{$_} : ()) } keys %$opt_list
-  ] if ref $opt_list eq 'HASH';
-
-  my @return;
-  my %seen;
-
-  for (my $i = 0; $i < @$opt_list; $i++) {
-    my $name = $opt_list->[$i];
-    my $value;
-
-    if ($require_unique) {
-      Carp::croak "multiple definitions provided for $name" if $seen{$name}++;
-    }
-
-    if    ($i == $#$opt_list)             { $value = undef;            }
-    elsif (not defined $opt_list->[$i+1]) { $value = undef; $i++       }
-    elsif (ref $opt_list->[$i+1])         { $value = $opt_list->[++$i] }
-    else                                  { $value = undef;            }
-
-    if ($must_be and defined $value) {
-      my $ref = ref $value;
-      my $ok  = ref $must_be ? (grep { $ref eq $_ } @$must_be)
-              :                ($ref eq $must_be);
-
-      Carp::croak "$ref-ref values are not valid in $moniker opt list" if !$ok;
-    }
-
-    push @return, [ $name => $value ];
-  }
-
-  return \@return;
-}
-
-# This turns a canonicalized opt_list (see above) into a hash.
-sub _expand_opt_list {
-  my ($opt_list, $moniker, $must_be) = @_;
-  return {} unless $opt_list;
-  return $opt_list if ref $opt_list eq 'HASH';
-
-  $opt_list = _canonicalize_opt_list($opt_list, $moniker, 1, $must_be);
-  my %hash = map { $_->[0] => $_->[1] } @$opt_list;
-  return \%hash;
-}
-
 # Given a potential import name, this returns the group name -- if it's got a
 # group prefix.
 sub _group_name {
@@ -437,6 +375,11 @@ sub _group_name {
 
   return if (index '-:', (substr $name, 0, 1)) == -1;
   return substr $name, 1;
+}
+
+sub _CALLABLE {
+  (Scalar::Util::reftype($_[0])||'') eq 'CODE' or Scalar::Util::blessed($_[0])
+  and overload::Method($_[0],'&{}') ? $_[0] : undef;
 }
 
 # \@groups is a canonicalized opt list of exports and groups this returns
@@ -464,7 +407,7 @@ sub _expand_groups {
       my $prefix = (delete $merge{-prefix}) || '';
       my $suffix = (delete $merge{-suffix}) || '';
 
-      if (ref $groups[$i][1] eq 'CODE') {
+      if (_CALLABLE($groups[$i][1])) {
         # this entry was build by a group generator
         $groups[$i][0] = $prefix . $groups[$i][0] . $suffix;
       } else {
@@ -507,7 +450,7 @@ sub _expand_group {
 
   my $exports = $config->{groups}{$group_name};
 
-  if (ref $exports eq 'CODE') {
+  if (_CALLABLE($exports)) {
     my $group = $exports->($class, $group_name, $group_arg, $collection);
     Carp::croak qq(group generator "$group_name" did not return a hashref)
       if ref $group ne 'HASH';
@@ -516,7 +459,8 @@ sub _expand_group {
       _expand_groups($class, $config, $stuff, $collection, $seen, $merge)
     };
   } else {
-    $exports = _canonicalize_opt_list($exports, "$group_name exports");
+    $exports
+      = Data::OptList::canonicalize_opt_list($exports, "$group_name exports");
 
     return @{
       _expand_groups($class, $config, $exports, $collection, $seen, $merge)
@@ -545,8 +489,16 @@ sub _collect_collections {
     $collection{ $name } = $value;
 
     if (ref(my $hook = $config->{collectors}{$name})) {
+      my $arg = {
+        name        => $name,
+        config      => $config,
+        import_args => $import_args,
+        class       => $class,
+        into        => $into,
+      };
+
       Carp::croak "collection $name failed validation"
-        unless $hook->($value, $name, $config, $import_args, $class, $into);
+        unless $hook->($value, $arg);
     }
   }
 
@@ -624,9 +576,7 @@ sub _key_intersection {
 # configurations, and set up defaults.  Since the config is a reference, it's
 # rewritten in place.
 my %valid_config_key;
-BEGIN {
-  %valid_config_key = map { $_ => 1 } qw(exports exporter groups collectors)
-}
+BEGIN { %valid_config_key = map {$_=>1} qw(exports exporter groups collectors) }
 
 sub _rewrite_build_config {
   my ($config) = @_;
@@ -635,7 +585,7 @@ sub _rewrite_build_config {
     Carp::croak "unknown options (@keys) passed to Sub::Exporter";
   }
 
-  $config->{$_} = _expand_opt_list($config->{$_}, $_, 'CODE')
+  $config->{$_} = Data::OptList::expand_opt_list($config->{$_}, $_, 'CODE')
     for qw(exports collectors);
 
   if (my @names = _key_intersection(@$config{qw(exports collectors)})) {
@@ -643,7 +593,9 @@ sub _rewrite_build_config {
   }
 
   $config->{groups}
-    = _expand_opt_list($config->{groups}, 'groups', [ 'HASH', 'CODE' ]);
+    = Data::OptList::expand_opt_list(
+      $config->{groups}, 'groups', [ 'HASH', 'CODE', 'ARRAY' ]
+    );
 
   # by default, export nothing
   $config->{groups}{default} ||= [];
@@ -661,21 +613,21 @@ sub build_exporter {
     my ($class) = shift;
 
     # XXX: clean this up -- rjbs, 2006-03-16
-    my $import_arg = (ref $_[0]) ? shift(@_) : {};
+    my $special = (ref $_[0]) ? shift(@_) : {};
     Carp::croak q(into and into_level may not both be supplied to exporter)
-      if exists $import_arg->{into} and exists $import_arg->{into_level};
+      if exists $special->{into} and exists $special->{into_level};
 
     my $into
-      = defined $import_arg->{into}       ? delete $import_arg->{into}
-      : defined $import_arg->{into_level} ? caller(delete $import_arg->{into_level})
-      :                                     caller(0);
+      = defined $special->{into}       ? delete $special->{into}
+      : defined $special->{into_level} ? caller(delete $special->{into_level})
+      :                                  caller(0);
 
-    my $export = delete $import_arg->{exporter}
+    my $export = delete $special->{exporter}
               || $config->{exporter}
-              || \&_export;
+              || \&default_exporter;
 
     # this builds a AOA, where the inner arrays are [ name => value_ref ]
-    my $import_args = _canonicalize_opt_list([ @_ ]);
+    my $import_args = Data::OptList::canonicalize_opt_list([ @_ ]);
 
     my $collection = _collect_collections($config, $import_args, $class, $into);
 
@@ -684,30 +636,34 @@ sub build_exporter {
 
     # now, finally $import_arg is really the "to do" list
     for (@$to_import) {
-      my ($name, $arg) = @$_;
-
-      my ($generator, $as);
-
-      if ($arg and ref $arg eq 'CODE') {
-        # This is the case when a group generator has inserted name/code pairs.
-        $generator = sub { $arg };
-        $as = $name;
-      } else {
-        $arg = { $arg ? %$arg : () };
-
-        Carp::croak qq("$name" is not exported by the $class module)
-          unless (exists $config->{exports}{$name});
-
-        $generator = $config->{exports}{$name};
-
-        $as = exists $arg->{-as} ? (delete $arg->{-as}) : $name;
-      }
-
-      $export->($class, $generator, $name, $arg, $collection, $as, $into);
+      _do_import($class, @$_, $collection, $config, $into, $export);
     }
   };
 
   return $import;
+}
+
+sub _do_import {
+  my ($class, $name, $arg, $collection, $config, $into, $export) = @_;
+
+  my ($generator, $as);
+
+  if ($arg and _CALLABLE($arg)) {
+    # This is the case when a group generator has inserted name/code pairs.
+    $generator = sub { $arg };
+    $as = $name;
+  } else {
+    $arg = { $arg ? %$arg : () };
+
+    Carp::croak qq("$name" is not exported by the $class module)
+      unless (exists $config->{exports}{$name});
+
+    $generator = $config->{exports}{$name};
+
+    $as = exists $arg->{-as} ? (delete $arg->{-as}) : $name;
+  }
+
+  $export->($class, $generator, $name, $arg, $collection, $as, $into);
 }
 
 # XXX: Consider implementing a _export_args routine that takes the arguments to
@@ -716,10 +672,19 @@ sub build_exporter {
 # premature guarantee, though, unless I guarantee that @_ will never get
 # /smaller/.
 
-# the default installer; it does what Sub::Exporter promises: call generators
-# with the three normal arguments, then install the code into the target
-# package
-sub _export {
+=head2 default_exporter
+
+This is Sub::Exporter's default exporter.  It does what Sub::Exporter promises:
+it calls generators with the three normal arguments, then installs the code
+into the target package.
+
+B<Warning!>  Its interface isn't really stable yet, so don't rely on it.  It's
+only named here so that you can pass it in to the exporter builder.  It will
+have a stable interface in the future so that it may be more easily replaced.
+
+=cut
+
+sub default_exporter {
   my ($class, $generator, $name, $arg, $collection, $as, $into) = @_;
   _install(
     _generate($class, $generator, $name, $arg, $collection),
@@ -780,22 +745,22 @@ setup_exporter({
   ],
   groups  => {
     all   => [ qw(setup_exporter build_export) ],
-    #setup => { _import => { -as => 'import' } }
   },
   collectors => { -setup => \&_setup },
 });
 
 sub _setup {
-  my ($value, $name, $config, $import_args, $class, $into) = @_;
+  my ($value, $arg) = @_;
 
-  if (ref $value) {
-    push @$import_args, [ _import => { -as => 'import', %$value } ];
+  if (ref $value eq 'HASH') {
+    push @{ $arg->{import_args} }, [ _import => { -as => 'import', %$value } ];
     return 1;
-  } else {
-    my %config = (exports => { map { @$_[0,1] } @$import_args });
-    @$import_args = [ _import => { -as => 'import', %config } ];
+  } elsif (ref $value eq 'ARRAY') {
+    push @{ $arg->{import_args} },
+      [ _import => { -as => 'import', exports => $value } ];
     return 1;
   }
+  return;
 }
 
 =head1 COMPARISONS
@@ -881,7 +846,8 @@ variables, at runtime.)
 L<Perl6::Export> isn't actually attribute based, but looks similar.  Its syntax
 is borrowed from Perl 6, and implemented by a source filter.  It is a prototype
 of an interface that is still being designed.  It should probably be avoided
-for production work.
+for production work.  On the other hand, L<Perl6::Export::Attrs> implements
+Perl 6-like exporting, but translates it into Perl 5 by providing attributes.
 
 =item * Other Exporters
 
@@ -903,20 +869,13 @@ variables for its configuration.
 
 =cut
 
-# This would be cool:
-# use Food qr/\Aartificial/ => { -prefix => 'non_' };
-
 =over
 
 =item * write a set of longer, more demonstrative examples
 
-=item * solidify the "custom build and install" interface (see C<&_export>)
+=item * solidify the "custom exporter" interface (see C<&default_exporter>)
 
-=item * finalize the collector-hook semantics
-
-=item * add an "always exported" group
-
-=item * consider post-export hooks
+=item * add an "always" group
 
 =back
 

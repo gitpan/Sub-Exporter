@@ -9,5 +9,6 @@ no_index:
     - inc
     - t
 requires: 
+  Scalar::Util: 0
   Sub::Install: 0.03
-version: 0.93
+version: 0.95
