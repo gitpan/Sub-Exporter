@@ -14,9 +14,9 @@ not run its Makefile.PL or Build.PL.
 -----BEGIN PGP SIGNED MESSAGE-----
 Hash: SHA1
 
-SHA1 1f6b8f53af2f8dbe8c9a8c0001a220d9a024fb4a Changes
-SHA1 e5fe1bf4d6de42c83b73570ebe6f3326989f098e MANIFEST
-SHA1 a059a6e31f6ef82457b0689999920fdf7fdb67f6 META.yml
+SHA1 fb42736bc42078d1ef99caefa26705c42a2483ae Changes
+SHA1 da9461ebc47e24a2f6b19106cbd29a3c84fc0686 MANIFEST
+SHA1 4ec6bbfe614e543e2c0aa9c688195b7d649b968d META.yml
 SHA1 5406d7540a957a2dc08215bb550be3c6f84323d7 Makefile.PL
 SHA1 36cdc8bcbdb15eb0ba6bd917b7135a592f2efa9e README
 SHA1 ec2e3f89726d91338c33adb8d9ab85889671546a inc/Module/Install.pm
@@ -28,7 +28,7 @@ SHA1 b3f60463cb90ba74f1db41598a49478257b1c1ff inc/Module/Install/Metadata.pm
 SHA1 542a6aa745e8b3649e4af07e913baaeb70611d90 inc/Module/Install/Win32.pm
 SHA1 1dd03ca2a5fe24536382d2636bde32a7fefac57e inc/Module/Install/WriteAll.pm
 SHA1 cf997d35812a280a7f53255abc0aabb4a9414007 lib/Data/OptList.pm
-SHA1 0041e779f82b52be5b2985d1e090918a6fff436a lib/Sub/Exporter.pm
+SHA1 33cf72cd9e5d84c0bee21fb53ca75c3677f6e09e lib/Sub/Exporter.pm
 SHA1 0eb45101be8758505a7bf8d64e2aac5255a294c0 lib/Sub/Exporter/Tutorial.pod
 SHA1 7b3d92cd8134691df254385b392ae2d9704ee52d lib/Sub/Exporter/Util.pm
 SHA1 21acda74fc155eb975c1e38f7eb1b7b0cebb526b t/callable.t
@@ -42,6 +42,7 @@ SHA1 3c3d98d6e6826fde3b676cc33a266857f9f0a8cb t/into-level.t
 SHA1 8983ceef665e579b4e394f47d3ea77c8a0d6758e t/lib/Test/SubExporter/DashSetup.pm
 SHA1 968d0a7b562e8e3ef05adf72abae28d2d26572f5 t/lib/Test/SubExporter/Faux.pm
 SHA1 85433dc42004e119e3ea0665f570172f98dd7dde t/lib/Test/SubExporter/GroupGen.pm
+SHA1 7601c613cb201d8a599b97f05bb3350cbd0f6e27 t/lib/Test/SubExporter/ObjGen.pm
 SHA1 4766d146097a1bbf4f2ce3d7ab6c4a133271d78b t/lib/Test/SubExporter/s_e.pm
 SHA1 adab9dc6c152b9201b297aec50cc7e643654b7e4 t/opt-canon.t
 SHA1 ef13ea4af512c00087f90b5874699e43db5f8141 t/opt-expand.t
@@ -58,7 +59,7 @@ SHA1 136130d41ac445feda18fc323bbfd70e42fbcb0a t/valid-config.t
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.1 (Darwin)
 
-iD8DBQFEVNWq5IEwYcR13KMRAtDEAJ45zj1+1Ec8VqRgpUS3AcrrhOxcGwCfelU3
-m9z3Set6M3HBzkzB6LSaDak=
-=WBCg
+iD8DBQFEVRfX5IEwYcR13KMRAn3eAJ0Y7Mi2CCHBiJX+q79JZAus4JoNBgCfVSmh
+lOPuiKJ/vITqD7cgQgfp3uE=
+=tKf/
 -----END PGP SIGNATURE-----

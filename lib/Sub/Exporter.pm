@@ -14,13 +14,13 @@ Sub::Exporter - a sophisticated exporter for custom-built routines
 
 =head1 VERSION
 
-version 0.951
+version 0.952
 
-  $Id: /my/cs/projects/export/trunk/lib/Sub/Exporter.pm 21663 2006-04-30T15:06:14.716450Z rjbs  $
+  $Id: /my/cs/projects/export/trunk/lib/Sub/Exporter.pm 21669 2006-04-30T20:00:19.992671Z rjbs  $
 
 =cut
 
-our $VERSION = '0.951';
+our $VERSION = '0.952';
 
 =head1 SYNOPSIS
 
