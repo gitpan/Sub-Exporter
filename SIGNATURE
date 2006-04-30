@@ -14,10 +14,10 @@ not run its Makefile.PL or Build.PL.
 -----BEGIN PGP SIGNED MESSAGE-----
 Hash: SHA1
 
-SHA1 2cf6827043d05a9803adebd2534c9a5e12f75e3e Changes
-SHA1 3be6959602dae0a589b81677e6af87d053eb40e5 MANIFEST
-SHA1 bf869585ede049114cb03a369f6a81942f3028a7 META.yml
-SHA1 6419c4d98fd88fadd23ac9efe59e09f7aa70c330 Makefile.PL
+SHA1 1f6b8f53af2f8dbe8c9a8c0001a220d9a024fb4a Changes
+SHA1 e5fe1bf4d6de42c83b73570ebe6f3326989f098e MANIFEST
+SHA1 a059a6e31f6ef82457b0689999920fdf7fdb67f6 META.yml
+SHA1 5406d7540a957a2dc08215bb550be3c6f84323d7 Makefile.PL
 SHA1 36cdc8bcbdb15eb0ba6bd917b7135a592f2efa9e README
 SHA1 ec2e3f89726d91338c33adb8d9ab85889671546a inc/Module/Install.pm
 SHA1 6ef459d9db32305cf709f938ff72b5a526d11f58 inc/Module/Install/Base.pm
@@ -27,14 +27,15 @@ SHA1 2fd3502290372f63ea3c3c230ab4d0bffacc5740 inc/Module/Install/Makefile.pm
 SHA1 b3f60463cb90ba74f1db41598a49478257b1c1ff inc/Module/Install/Metadata.pm
 SHA1 542a6aa745e8b3649e4af07e913baaeb70611d90 inc/Module/Install/Win32.pm
 SHA1 1dd03ca2a5fe24536382d2636bde32a7fefac57e inc/Module/Install/WriteAll.pm
-SHA1 6a2e20960c68575c10faea54a760bb73e1a9bd1e lib/Data/OptList.pm
-SHA1 15ecce19e356230676c92bd48ac8f38411e630ea lib/Sub/Exporter.pm
+SHA1 cf997d35812a280a7f53255abc0aabb4a9414007 lib/Data/OptList.pm
+SHA1 0041e779f82b52be5b2985d1e090918a6fff436a lib/Sub/Exporter.pm
 SHA1 0eb45101be8758505a7bf8d64e2aac5255a294c0 lib/Sub/Exporter/Tutorial.pod
 SHA1 7b3d92cd8134691df254385b392ae2d9704ee52d lib/Sub/Exporter/Util.pm
 SHA1 21acda74fc155eb975c1e38f7eb1b7b0cebb526b t/callable.t
 SHA1 0a7ad647f03321c877bc9da858a1dd975c528070 t/collection.t
 SHA1 7ef5938672249b8b0c5a80babb9a4818a5dbda59 t/expand-group.t
 SHA1 6d892119978e19128946cb6e645d430f6848fd75 t/faux-export.t
+SHA1 5fc82f117eace68a74817a065a6f49960b467b6a t/gen-callable.t
 SHA1 ab1005ed94b415f5217e2c979ba2ded1069bcdd3 t/group-generator.t
 SHA1 2250720a32de5d398dbe8e667eca12881626b65c t/inherited.t
 SHA1 3c3d98d6e6826fde3b676cc33a266857f9f0a8cb t/into-level.t
@@ -52,12 +53,12 @@ SHA1 29a2d38e3f679162adcd4f585ffc5533b2513825 t/real-export-setup.t
 SHA1 89d83d0da6bce9eefbe11e5b77b7ad8abdc4557e t/util-curry.t
 SHA1 fe19182e64d841f3c47e2bcacc9e7ea0fa26133f t/util-like.t
 SHA1 1b4a19ba3c3aad2ca57eba5d102b39b284356ad9 t/util-merge.t
-SHA1 c32d789fa8102bb3edbd7bec552e650c3266a673 t/util-mixin.t
+SHA1 10cb898dc6b53e1a01e4bb525e0f2edd71f2d321 t/util-mixin.t
 SHA1 136130d41ac445feda18fc323bbfd70e42fbcb0a t/valid-config.t
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.1 (Darwin)
 
-iD8DBQFEUgtS5IEwYcR13KMRAtqLAJ9/WewSazzm13ciy35ecuBNcMMM1wCfYDgW
-IbeuCjki+OxBr1YKykwiHn0=
-=f198
+iD8DBQFEVNWq5IEwYcR13KMRAtDEAJ45zj1+1Ec8VqRgpUS3AcrrhOxcGwCfelU3
+m9z3Set6M3HBzkzB6LSaDak=
+=WBCg
 -----END PGP SIGNATURE-----

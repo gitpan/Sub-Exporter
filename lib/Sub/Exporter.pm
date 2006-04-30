@@ -6,7 +6,7 @@ use warnings;
 use Carp ();
 use Data::OptList ();
 use Scalar::Util ();
-use Sub::Install ();
+use Sub::Install 0.91 ();
 
 =head1 NAME
 
@@ -14,13 +14,13 @@ Sub::Exporter - a sophisticated exporter for custom-built routines
 
 =head1 VERSION
 
-version 0.95
+version 0.951
 
-  $Id: /my/cs/projects/export/trunk/lib/Sub/Exporter.pm 21469 2006-04-25T22:18:36.213593Z rjbs  $
+  $Id: /my/cs/projects/export/trunk/lib/Sub/Exporter.pm 21663 2006-04-30T15:06:14.716450Z rjbs  $
 
 =cut
 
-our $VERSION = '0.95';
+our $VERSION = '0.951';
 
 =head1 SYNOPSIS
 
@@ -887,7 +887,10 @@ Ricardo SIGNES, C<< <rjbs@cpan.org> >>
 
 Hans Dieter Pearcey provided helpful advice while I was writing Sub::Exporter.
 Ian Langworth and Shawn Sorichetti asked some good questions and hepled me
-improve my documentation quite a bit.  Thanks, guys! 
+improve my documentation quite a bit.  Yuval Kogman helped me find a bunch of
+little problems.
+
+Thanks, guys! 
 
 =head1 BUGS
 
