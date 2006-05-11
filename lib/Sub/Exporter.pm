@@ -5,7 +5,7 @@ use warnings;
 
 use Carp ();
 use Data::OptList ();
-use Scalar::Util ();
+use Params::Util ();
 use Sub::Install 0.91 ();
 
 =head1 NAME
@@ -14,13 +14,13 @@ Sub::Exporter - a sophisticated exporter for custom-built routines
 
 =head1 VERSION
 
-version 0.952
+version 0.953
 
-  $Id: /my/cs/projects/export/trunk/lib/Sub/Exporter.pm 21669 2006-04-30T20:00:19.992671Z rjbs  $
+  $Id: /my/cs/projects/export/trunk/lib/Sub/Exporter.pm 21899 2006-05-10T14:53:21.506421Z rjbs  $
 
 =cut
 
-our $VERSION = '0.952';
+our $VERSION = '0.953';
 
 =head1 SYNOPSIS
 
@@ -377,11 +377,6 @@ sub _group_name {
   return substr $name, 1;
 }
 
-sub _CALLABLE {
-  (Scalar::Util::reftype($_[0])||'') eq 'CODE' or Scalar::Util::blessed($_[0])
-  and overload::Method($_[0],'&{}') ? $_[0] : undef;
-}
-
 # \@groups is a canonicalized opt list of exports and groups this returns
 # another canonicalized opt list with groups replaced with relevant exports.
 # \%seen is groups we've already expanded and can ignore.
@@ -390,10 +385,9 @@ sub _expand_groups {
   my ($class, $config, $groups, $collection, $seen, $merge) = @_;
   $seen  ||= {};
   $merge ||= {};
-
   my @groups = @$groups;
 
-  for my $i (reverse 0 .. $#$groups) {
+  for my $i (reverse 0 .. $#groups) {
     if (my $group_name = _group_name($groups[$i][0])) {
       my $seen = { %$seen }; # faux-dynamic scoping
 
@@ -407,7 +401,7 @@ sub _expand_groups {
       my $prefix = (delete $merge{-prefix}) || '';
       my $suffix = (delete $merge{-suffix}) || '';
 
-      if (_CALLABLE($groups[$i][1])) {
+      if (Params::Util::_CODELIKE($groups[$i][1])) {
         # this entry was build by a group generator
         $groups[$i][0] = $prefix . $groups[$i][0] . $suffix;
       } else {
@@ -450,7 +444,7 @@ sub _expand_group {
 
   my $exports = $config->{groups}{$group_name};
 
-  if (_CALLABLE($exports)) {
+  if (Params::Util::_CODELIKE($exports)) {
     my $group = $exports->($class, $group_name, $group_arg, $collection);
     Carp::croak qq(group generator "$group_name" did not return a hashref)
       if ref $group ne 'HASH';
@@ -547,7 +541,7 @@ sub setup_exporter {
 
   my $import = build_exporter($config);
 
-  Sub::Install::install_sub({
+  Sub::Install::reinstall_sub({
     code => $import,
     into => $into,
     as   => $as,
@@ -648,7 +642,7 @@ sub _do_import {
 
   my ($generator, $as);
 
-  if ($arg and _CALLABLE($arg)) {
+  if ($arg and Params::Util::_CODELIKE($arg)) {
     # This is the case when a group generator has inserted name/code pairs.
     $generator = sub { $arg };
     $as = $name;
@@ -726,7 +720,7 @@ sub _install {
   } elsif (ref $as) {
     Carp::croak "invalid reference type for $as: " . ref $as;
   } else {
-    Sub::Install::install_sub({ code => $code, into => $into, as => $as });
+    Sub::Install::reinstall_sub({ code => $code, into => $into, as => $as });
   }
 }
 

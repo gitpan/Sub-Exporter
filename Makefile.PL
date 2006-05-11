@@ -10,9 +10,9 @@ version_from  ('lib/Sub/Exporter.pm');
 
 requires('Sub::Install' => 0.91);
 requires('List::Util'   => 0.00); # unknown minimum
-requires('Scalar::Util' => 0.00); # unknown minimum
+requires('Params::Util' => 0.14); # _HASHLIKE, _ARRAYLIKE, _CODELIKE
 
-sign(1);
+# sign(1); # I hear this gives people grief -- rjbs, 2006-05-10
 
 # auto_install;
 WriteAll();

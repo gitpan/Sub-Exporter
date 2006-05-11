@@ -28,7 +28,7 @@ BEGIN {
     # This is not enforced yet, but will be some time in the next few
     # releases once we can make sure it won't clash with custom
     # Module::Install extensions.
-    $VERSION = '0.60';
+    $VERSION = '0.62';
 }
 
 # Whether or not inc::Module::Install is actually loaded, the
@@ -116,7 +116,7 @@ sub preload {
     my %seen;
     foreach my $obj ( @exts ) {
         while (my ($method, $glob) = each %{ref($obj) . '::'}) {
-            next unless exists &{ref($obj).'::'.$method};
+            next unless $obj->can($method);
             next if $method =~ /^_/;
             next if $method eq uc($method);
             $seen{$method}++;
@@ -196,7 +196,6 @@ sub load_extensions {
         unshift @INC, $self->{prefix};
     }
 
-    local @INC = ($path, @INC);
     foreach my $rv ( $self->find_extensions($path) ) {
         my ($file, $pkg) = @{$rv};
         next if $self->{pathnames}{$pkg};
