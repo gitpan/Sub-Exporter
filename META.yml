@@ -10,5 +10,5 @@ no_index:
 requires: 
   List::Util: 0
   Params::Util: 0.14
-  Sub::Install: 0.91
-version: 0.953
+  Sub::Install: 0.92
+version: 0.954

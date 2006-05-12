@@ -6,7 +6,7 @@ use warnings;
 use Carp ();
 use Data::OptList ();
 use Params::Util ();
-use Sub::Install 0.91 ();
+use Sub::Install 0.92 ();
 
 =head1 NAME
 
@@ -16,11 +16,11 @@ Sub::Exporter - a sophisticated exporter for custom-built routines
 
 version 0.953
 
-  $Id: /my/cs/projects/export/trunk/lib/Sub/Exporter.pm 21899 2006-05-10T14:53:21.506421Z rjbs  $
+  $Id: /my/cs/projects/export/trunk/lib/Sub/Exporter.pm 22012 2006-05-11T22:36:58.911897Z rjbs  $
 
 =cut
 
-our $VERSION = '0.953';
+our $VERSION = '0.954';
 
 =head1 SYNOPSIS
 
@@ -579,7 +579,7 @@ sub _rewrite_build_config {
     Carp::croak "unknown options (@keys) passed to Sub::Exporter";
   }
 
-  $config->{$_} = Data::OptList::expand_opt_list($config->{$_}, $_, 'CODE')
+  $config->{$_} = Data::OptList::opt_list_as_hash($config->{$_}, $_, 'CODE')
     for qw(exports collectors);
 
   if (my @names = _key_intersection(@$config{qw(exports collectors)})) {
@@ -587,7 +587,7 @@ sub _rewrite_build_config {
   }
 
   $config->{groups}
-    = Data::OptList::expand_opt_list(
+    = Data::OptList::opt_list_as_hash(
       $config->{groups}, 'groups', [ 'HASH', 'CODE', 'ARRAY' ]
     );
 
