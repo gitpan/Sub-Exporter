@@ -8,7 +8,7 @@ no_index:
     - inc
     - t
 requires:
-  List::Util: 0
+  Data::OptList: 0.1
   Params::Util: 0.14
   Sub::Install: 0.92
-version: 0.960
+version: 0.961

@@ -14,13 +14,13 @@ Sub::Exporter - a sophisticated exporter for custom-built routines
 
 =head1 VERSION
 
-version 0.960
+version 0.961
 
-  $Id: /my/cs/projects/export/trunk/lib/Sub/Exporter.pm 21913 2006-06-01T01:51:23.419513Z rjbs  $
+  $Id: /my/cs/projects/export/trunk/lib/Sub/Exporter.pm 22106 2006-06-05T14:19:07.111533Z rjbs  $
 
 =cut
 
-our $VERSION = '0.960';
+our $VERSION = '0.961';
 
 =head1 SYNOPSIS
 
@@ -454,7 +454,7 @@ sub _expand_group {
     };
   } else {
     $exports
-      = Data::OptList::canonicalize_opt_list($exports, "$group_name exports");
+      = Data::OptList::mkopt($exports, "$group_name exports");
 
     return @{
       _expand_groups($class, $config, $exports, $collection, $seen, $merge)
@@ -586,7 +586,7 @@ sub _rewrite_build_config {
   Carp::croak q(into and into_level may not both be supplied to exporter)
     if exists $config->{into} and exists $config->{into_level};
 
-  $config->{$_} = Data::OptList::opt_list_as_hash($config->{$_}, $_, 'CODE')
+  $config->{$_} = Data::OptList::mkopt_hash($config->{$_}, $_, 'CODE')
     for qw(exports collectors);
 
   if (my @names = _key_intersection(@$config{qw(exports collectors)})) {
@@ -594,7 +594,7 @@ sub _rewrite_build_config {
   }
 
   $config->{groups}
-    = Data::OptList::opt_list_as_hash(
+    = Data::OptList::mkopt_hash(
       $config->{groups}, 'groups', [ 'HASH', 'CODE', 'ARRAY' ]
     );
 
@@ -630,7 +630,7 @@ sub build_exporter {
               || \&default_exporter;
 
     # this builds a AOA, where the inner arrays are [ name => value_ref ]
-    my $import_args = Data::OptList::canonicalize_opt_list([ @_ ]);
+    my $import_args = Data::OptList::mkopt([ @_ ]);
 
     my $collection = _collect_collections($config, $import_args, $class, $into);
 
