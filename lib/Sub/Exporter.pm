@@ -14,13 +14,13 @@ Sub::Exporter - a sophisticated exporter for custom-built routines
 
 =head1 VERSION
 
-version 0.965
+version 0.966
 
-  $Id: /my/cs/projects/export/trunk/lib/Sub/Exporter.pm 22106 2006-06-05T14:19:07.111533Z rjbs  $
+  $Id: /my/cs/projects/export/trunk/lib/Sub/Exporter.pm 22590 2006-06-17T19:54:13.510080Z rjbs  $
 
 =cut
 
-our $VERSION = '0.965';
+our $VERSION = '0.966';
 
 =head1 SYNOPSIS
 
@@ -314,17 +314,16 @@ default easily:
   collectors => { defaults => sub { return (exists $_[0]->{data}) ? 0 : 1 } }
 
 Collector coderefs can also be used as hooks to perform arbitrary actions
-before anything is exported.  B<Warning!>  This feature is experimental and may
-change in the future.
+before anything is exported.
 
-When the coderef is called, it is actually passed these values:
+When the coderef is called, it is passed the value of the collection and a
+hashref containing the following entries:
 
-  $value - the value given for the collector in the args to import
-  $name  - the name of the collector
- \%config      - the exporter configuration
- \@import_args - the arguments passed to the exporter, sans collections
-  $class - the package on which the importer was called
-  $into  - the package into which exports will be exported
+  name        - the name of the collector
+  config      - the exporter configuration (hashref)
+  import_args - the arguments passed to the exporter, sans collections (aref)
+  class       - the package on which the importer was called
+  into        - the package into which exports will be exported
 
 =head1 CALLING THE EXPORTER
 
@@ -714,6 +713,9 @@ sub default_exporter {
 sub _generate {
   my ($class, $generator, $name, $arg, $collection) = @_;
 
+  # I considered making the T case, below, "$class->$generator(" but it seems
+  # that overloading precedence would turn an overloaded-as-code generator
+  # object into a string before code. -- rjbs, 2006-06-11
   my $code = $generator
            ? $generator->($class, $name, $arg, $collection)
            : $class->can($name); 
@@ -744,7 +746,7 @@ group, which will setup an exporter using the parameters passed to it.
 setup_exporter({
   exports => [
     qw(setup_exporter build_exporter),
-    _import => sub { splice @_, 0, 2; build_exporter(@_) },
+    _import => sub { build_exporter($_[2]) },
   ],
   groups  => {
     all   => [ qw(setup_exporter build_export) ],

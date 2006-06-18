@@ -1,5 +1,10 @@
 Revision history for Sub-Exporter
 
+0.966   2006-06-17
+        correct documentation of collector hook args
+        simplify internal use of setup_exporter
+        clean up documentation in ::Util
+
 0.965   2006-06-05
         curry_class now allows the export to curry a differently-named method
 
