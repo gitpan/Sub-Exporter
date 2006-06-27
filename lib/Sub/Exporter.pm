@@ -14,13 +14,13 @@ Sub::Exporter - a sophisticated exporter for custom-built routines
 
 =head1 VERSION
 
-version 0.966
+version 0.970
 
-  $Id: /my/cs/projects/export/trunk/lib/Sub/Exporter.pm 22590 2006-06-17T19:54:13.510080Z rjbs  $
+  $Id: /my/cs/projects/export/trunk/lib/Sub/Exporter.pm 22773 2006-06-27T16:48:37.268002Z rjbs  $
 
 =cut
 
-our $VERSION = '0.966';
+our $VERSION = '0.970';
 
 =head1 SYNOPSIS
 
@@ -631,9 +631,11 @@ sub build_exporter {
     # this builds a AOA, where the inner arrays are [ name => value_ref ]
     my $import_args = Data::OptList::mkopt([ @_ ]);
 
+    # is this right?  defaults first or collectors first? -- rjbs, 2006-06-24
+    $import_args = [ [ -default => undef ] ] unless @$import_args;
+
     my $collection = _collect_collections($config, $import_args, $class, $into);
 
-    $import_args = [ [ -default => 1 ] ] unless @$import_args;
     my $to_import = _expand_groups($class, $config, $import_args, $collection);
 
     # now, finally $import_arg is really the "to do" list

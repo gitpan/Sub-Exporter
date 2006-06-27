@@ -9,13 +9,13 @@ Sub::Exporter::Util - utilities to make Sub::Exporter easier
 
 =head1 VERSION
 
-version 0.015
+version 0.020
 
   $Id$
 
 =cut
 
-our $VERSION = '0.015';
+our $VERSION = '0.020';
 
 =head1 DESCRIPTION
 
@@ -114,27 +114,46 @@ sub merge_col {
 This utility returns an exporter that will export into a superclass and adjust
 the ISA importing class to include the newly generated superclass.
 
+If the target of importing is an object, the hierarchy is reversed: the new
+class will be ISA the object's class, and the object will be reblessed.
+
 B<Prerequisites>: This utility requires that Package::Generator be installed.
 
 =cut
 
+sub __mixin_class_for {
+  my ($class, $mix_into) = @_;
+  require Package::Generator;
+  my $mixin_class = Package::Generator->new_package({
+    base => "$class\:\:__mixin__",
+  });
+
+  no strict 'refs';
+  if (ref $mix_into) {
+    $mix_into = ref $mix_into if ref $mix_into;
+    unshift @{"$mixin_class" . "::ISA"}, $mix_into;
+  } else {
+    unshift @{"$mix_into" . "::ISA"}, $mixin_class;
+  }
+  return $mixin_class;
+}
+
 sub mixin_exporter {
+  # These are NOT arguments to mixin_exporter, that's why there is no = @_.
+  # They are variables created to enclose in each generated exporter coderef.
   my ($mixin_class, $col_ref);
+
   sub {
     my ($class, $generator, $name, $arg, $collection, $as, $into) = @_;
 
     unless ($mixin_class and ($collection == $col_ref)) {
-      require Package::Generator;
-      $mixin_class = Package::Generator->new_package({
-        base => "$class\:\:__mixin__",
-      });
+      $mixin_class = __mixin_class_for($class, $into);
+      bless $into => $mixin_class if ref $into;
       $col_ref = 0 + $collection;
-      no strict 'refs';
-      unshift @{"$into" . "::ISA"}, $mixin_class;
     }
-    $into = $mixin_class;
+
     Sub::Exporter::default_exporter(
-      $class, $generator, $name, $arg, $collection, $as, $into
+      $class, $generator, $name, $arg, $collection, $as, $mixin_class
     );
   };
 }
@@ -194,8 +213,6 @@ sub like {
 use Sub::Exporter -setup => {
   exports => [ qw(like merge_col curry_class mixin_exporter) ]
 };
-
-=head1 TODO
 
 =head1 AUTHOR
 
