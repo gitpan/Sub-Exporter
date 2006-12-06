@@ -14,13 +14,13 @@ Sub::Exporter - a sophisticated exporter for custom-built routines
 
 =head1 VERSION
 
-version 0.970
+version 0.972
 
-  $Id: /my/cs/projects/export/trunk/lib/Sub/Exporter.pm 22773 2006-06-27T16:48:37.268002Z rjbs  $
+  $Id: /my/cs/projects/export/trunk/lib/Sub/Exporter.pm 28841 2006-12-05T22:44:01.427395Z rjbs  $
 
 =cut
 
-our $VERSION = '0.970';
+our $VERSION = '0.972';
 
 =head1 SYNOPSIS
 
@@ -372,7 +372,7 @@ thrown.
 sub _group_name {
   my ($name) = @_;
 
-  return if (index '-:', (substr $name, 0, 1)) == -1;
+  return if (index q{-:}, (substr $name, 0, 1)) == -1;
   return substr $name, 1;
 }
 
@@ -400,7 +400,11 @@ sub _expand_groups {
       my $prefix = (delete $merge{-prefix}) || '';
       my $suffix = (delete $merge{-suffix}) || '';
 
-      if (Params::Util::_CODELIKE($groups[$i][1])) {
+      if (
+        Params::Util::_CODELIKE($groups[$i][1]) ## no critic Private
+        or
+        Params::Util::_SCALAR0($groups[$i][1]) ## no critic Private
+      ) {
         # this entry was build by a group generator
         $groups[$i][0] = $prefix . $groups[$i][0] . $suffix;
       } else {
@@ -443,8 +447,24 @@ sub _expand_group {
 
   my $exports = $config->{groups}{$group_name};
 
-  if (Params::Util::_CODELIKE($exports)) {
-    my $group = $exports->($class, $group_name, $group_arg, $collection);
+  if (
+    Params::Util::_CODELIKE($exports) ## no critic Private
+    or
+    Params::Util::_SCALAR0($exports) ## no critic Private
+  ) {
+    # I'm not very happy with this code for hiding -prefix and -suffix, but
+    # it's needed, and I'm not sure, offhand, how to make it better.
+    # -- rjbs, 2006-12-05
+    my $group_arg = $group_arg ? { %$group_arg } : {};
+    delete $group_arg->{-prefix};
+    delete $group_arg->{-suffix};
+
+    my $group;
+    if (Params::Util::_CODELIKE($exports)) {
+      $group = $exports->($class, $group_name, $group_arg, $collection);
+    } else {
+      $group = $class->$$exports($group_name, $group_arg, $collection);
+    }
     Carp::croak qq(group generator "$group_name" did not return a hashref)
       if ref $group ne 'HASH';
     my $stuff = [ map { [ $_ => $group->{$_} ] } keys %$group ];
@@ -490,8 +510,12 @@ sub _collect_collections {
         into        => $into,
       };
 
-      Carp::croak "collection $name failed validation"
-        unless $hook->($value, $arg);
+      my $error_msg = "collection $name failed validation";
+      if (Params::Util::_SCALAR0($hook)) {
+        Carp::croak $error_msg unless $class->$$hook($value, $arg);
+      } else {
+        Carp::croak $error_msg unless $hook->($value, $arg);
+      }
     }
   }
 
@@ -585,16 +609,27 @@ sub _rewrite_build_config {
   Carp::croak q(into and into_level may not both be supplied to exporter)
     if exists $config->{into} and exists $config->{into_level};
 
-  $config->{$_} = Data::OptList::mkopt_hash($config->{$_}, $_, 'CODE')
-    for qw(exports collectors);
+  for (qw(exports collectors)) {
+    $config->{$_} = Data::OptList::mkopt_hash(
+      $config->{$_},
+      $_,
+      [ 'CODE', 'SCALAR' ],
+    );
+  }
 
   if (my @names = _key_intersection(@$config{qw(exports collectors)})) {
     Carp::croak "names (@names) used in both collections and exports";
   }
 
-  $config->{groups}
-    = Data::OptList::mkopt_hash(
-      $config->{groups}, 'groups', [ 'HASH', 'CODE', 'ARRAY' ]
+  $config->{groups} = Data::OptList::mkopt_hash(
+      $config->{groups},
+      'groups',
+      [
+        'HASH',   # standard opt list
+        'ARRAY',  # standard opt list
+        'CODE',   # group generator
+        'SCALAR', # name of group generation method
+      ]
     );
 
   # by default, export nothing
@@ -652,7 +687,7 @@ sub _do_import {
 
   my ($generator, $as);
 
-  if ($arg and Params::Util::_CODELIKE($arg)) {
+  if ($arg and Params::Util::_CODELIKE($arg)) { ## no critic
     # This is the case when a group generator has inserted name/code pairs.
     $generator = sub { $arg };
     $as = $name;
@@ -715,12 +750,17 @@ sub default_exporter {
 sub _generate {
   my ($class, $generator, $name, $arg, $collection) = @_;
 
-  # I considered making the T case, below, "$class->$generator(" but it seems
-  # that overloading precedence would turn an overloaded-as-code generator
-  # object into a string before code. -- rjbs, 2006-06-11
-  my $code = $generator
-           ? $generator->($class, $name, $arg, $collection)
-           : $class->can($name); 
+  return $class->can($name) unless $generator;
+
+  # I considered making this "$class->$generator(" but it seems that
+  # overloading precedence would turn an overloaded-as-code generator object
+  # into a string before code. -- rjbs, 2006-06-11
+  return $generator->($class, $name, $arg, $collection)
+    if Params::Util::_CODELIKE($generator);
+
+  # This "must" be a scalar reference, to a generator method name.
+  # -- rjbs, 2006-12-05
+  return $class->$$generator($name, $arg, $collection);
 }
 
 sub _install {
@@ -800,8 +840,8 @@ complex uses, Sub::Exporter makes hard things possible, which would not be
 possible with Exporter. 
 
 When using a module that uses Sub::Exporter, users familiar with Exporter will
-probably see difference in the basics.  These two lines do about the same thing
-in whether the exporting module uses Exporter or Sub::Exporter.
+probably see no difference in the basics.  These two lines do about the same
+thing in whether the exporting module uses Exporter or Sub::Exporter.
 
   use Some::Module qw(foo bar baz);
   use Some::Module qw(foo :bar baz);

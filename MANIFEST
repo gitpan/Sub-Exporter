@@ -10,8 +10,9 @@ inc/Module/Install/WriteAll.pm
 lib/Sub/Exporter.pm
 lib/Sub/Exporter/Tutorial.pod
 lib/Sub/Exporter/Util.pm
+LICENSE
+MANIFEST
 Makefile.PL
-MANIFEST			This list of files
 META.yml
 README
 t/collection.t
@@ -24,8 +25,10 @@ t/into-level.t
 t/lib/Test/SubExporter/DashSetup.pm
 t/lib/Test/SubExporter/Faux.pm
 t/lib/Test/SubExporter/GroupGen.pm
+t/lib/Test/SubExporter/GroupGenSubclass.pm
 t/lib/Test/SubExporter/ObjGen.pm
 t/lib/Test/SubExporter/s_e.pm
+t/perl-critic.t
 t/pod-coverage.t
 t/pod.t
 t/real-export-groupgen.t

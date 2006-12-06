@@ -9,13 +9,13 @@ Sub::Exporter::Util - utilities to make Sub::Exporter easier
 
 =head1 VERSION
 
-version 0.020
+version 0.022
 
-  $Id$
+  $Id: /my/cs/projects/export/trunk/lib/Sub/Exporter/Util.pm 28839 2006-12-05T21:48:53.932621Z rjbs  $
 
 =cut
 
-our $VERSION = '0.020';
+our $VERSION = '0.022';
 
 =head1 DESCRIPTION
 
@@ -128,10 +128,10 @@ sub __mixin_class_for {
     base => "$class\:\:__mixin__",
   });
 
+  ## no critic (ProhibitNoStrict)
   no strict 'refs';
   if (ref $mix_into) {
-    $mix_into = ref $mix_into if ref $mix_into;
-    unshift @{"$mixin_class" . "::ISA"}, $mix_into;
+    unshift @{"$mixin_class" . "::ISA"}, ref $mix_into;
   } else {
     unshift @{"$mix_into" . "::ISA"}, $mixin_class;
   }

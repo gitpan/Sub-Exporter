@@ -5,7 +5,7 @@ Sub::Exporter::Tutorial - a friendly guide to exporting with Sub::Exporter
 
 =head1 VERSION
 
-  $Id: /my/cs/projects/export/trunk/lib/Sub/Exporter/Tutorial.pod 22376 2006-06-11T15:02:24.373468Z rjbs  $
+  $Id: /my/cs/projects/export/trunk/lib/Sub/Exporter/Tutorial.pod 1425 2006-08-14T17:02:44.651525Z rjbs  $
 
 =head1 DESCRIPTION
 
