@@ -14,13 +14,13 @@ Sub::Exporter - a sophisticated exporter for custom-built routines
 
 =head1 VERSION
 
-version 0.972
+version 0.974
 
-  $Id: /my/cs/projects/export/trunk/lib/Sub/Exporter.pm 28841 2006-12-05T22:44:01.427395Z rjbs  $
+  $Id: /my/cs/projects/Sub-Exporter/trunk/lib/Sub/Exporter.pm 31455 2007-04-22T13:38:51.095739Z rjbs  $
 
 =cut
 
-our $VERSION = '0.972';
+our $VERSION = '0.974';
 
 =head1 SYNOPSIS
 
@@ -176,7 +176,8 @@ The following keys are valid in C<%config>:
   exports - a list of routines to provide for exporting; each routine may be
             followed by generator
   groups  - a list of groups to provide for exporting; each must be followed by
-            a list of exports, possibly with arguments for each export
+            either (a) a list of exports, possibly with arguments for each
+            export, or (b) a generator
   collectors - a list of names into which values are collected for use in
                routine generation; each name may be followed by a validator
 
@@ -190,13 +191,13 @@ The list is processed in such a way that the following are equivalent:
   { exports =>
     { foo => undef, bar => undef, baz => undef, quux => \&quux_generator } }
 
-Generators are coderefs that return coderefs.  They are called with four
+Generators are code that return coderefs.  They are called with four
 parameters:
 
   $class - the class whose exporter has been called (the exporting class)
   $name  - the name of the export for which the routine is being build
  \%arg   - the arguments passed for this export
- \%coll  - the collections for this import
+ \%col   - the collections for this import
 
 Given the configuration in the L</SYNOPSIS>, the following C<use> statement:
 
@@ -215,6 +216,11 @@ would result in the following call to C<&build_reformatter>:
 
 The returned coderef (C<$code>) would then be installed as C<make_narrow> in the
 calling package.
+
+Instead of providing a coderef in the configuration, a reference to a method
+name may be provided.  This method will then be called on the invocant of the
+C<import> method.  (In this case, we do not pass the C<$class> parameter, as it
+would be redundant.)
 
 =head2 Group Configuration
 
@@ -459,14 +465,13 @@ sub _expand_group {
     delete $group_arg->{-prefix};
     delete $group_arg->{-suffix};
 
-    my $group;
-    if (Params::Util::_CODELIKE($exports)) {
-      $group = $exports->($class, $group_name, $group_arg, $collection);
-    } else {
-      $group = $class->$$exports($group_name, $group_arg, $collection);
-    }
+    my $group = Params::Util::_CODELIKE($exports)
+              ? $exports->($class, $group_name, $group_arg, $collection)
+              : $class->$$exports($group_name, $group_arg, $collection);
+
     Carp::croak qq(group generator "$group_name" did not return a hashref)
       if ref $group ne 'HASH';
+
     my $stuff = [ map { [ $_ => $group->{$_} ] } keys %$group ];
     return @{
       _expand_groups($class, $config, $stuff, $collection, $seen, $merge)
@@ -750,7 +755,11 @@ sub default_exporter {
 sub _generate {
   my ($class, $generator, $name, $arg, $collection) = @_;
 
-  return $class->can($name) unless $generator;
+  if (not defined $generator) {
+    my $code = $class->can($name)
+      or Carp::croak "can't locate exported subroutine $name via $class";
+    return $code;
+  }
 
   # I considered making this "$class->$generator(" but it seems that
   # overloading precedence would turn an overloaded-as-code generator object

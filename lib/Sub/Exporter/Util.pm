@@ -11,7 +11,7 @@ Sub::Exporter::Util - utilities to make Sub::Exporter easier
 
 version 0.022
 
-  $Id: /my/cs/projects/export/trunk/lib/Sub/Exporter/Util.pm 28839 2006-12-05T21:48:53.932621Z rjbs  $
+  $Id$
 
 =cut
 
