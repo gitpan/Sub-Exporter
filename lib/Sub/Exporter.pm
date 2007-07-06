@@ -14,13 +14,13 @@ Sub::Exporter - a sophisticated exporter for custom-built routines
 
 =head1 VERSION
 
-version 0.974
+version 0.975
 
-  $Id: /my/cs/projects/Sub-Exporter/trunk/lib/Sub/Exporter.pm 31455 2007-04-22T13:38:51.095739Z rjbs  $
+  $Id: /my/cs/projects/Sub-Exporter/trunk/lib/Sub/Exporter.pm 31990 2007-07-06T02:33:04.864653Z rjbs  $
 
 =cut
 
-our $VERSION = '0.974';
+our $VERSION = '0.975';
 
 =head1 SYNOPSIS
 
@@ -465,7 +465,7 @@ sub _expand_group {
     delete $group_arg->{-prefix};
     delete $group_arg->{-suffix};
 
-    my $group = Params::Util::_CODELIKE($exports)
+    my $group = Params::Util::_CODELIKE($exports) ## no critic Private
               ? $exports->($class, $group_name, $group_arg, $collection)
               : $class->$$exports($group_name, $group_arg, $collection);
 
@@ -516,7 +516,7 @@ sub _collect_collections {
       };
 
       my $error_msg = "collection $name failed validation";
-      if (Params::Util::_SCALAR0($hook)) {
+      if (Params::Util::_SCALAR0($hook)) { ## no critic Private
         Carp::croak $error_msg unless $class->$$hook($value, $arg);
       } else {
         Carp::croak $error_msg unless $hook->($value, $arg);
@@ -765,7 +765,7 @@ sub _generate {
   # overloading precedence would turn an overloaded-as-code generator object
   # into a string before code. -- rjbs, 2006-06-11
   return $generator->($class, $name, $arg, $collection)
-    if Params::Util::_CODELIKE($generator);
+    if Params::Util::_CODELIKE($generator); ## no critic Private
 
   # This "must" be a scalar reference, to a generator method name.
   # -- rjbs, 2006-12-05
@@ -950,14 +950,13 @@ Thanks, guys!
 
 =head1 BUGS
 
-Please report any bugs or feature requests to C<bug-sub-exporter@rt.cpan.org>,
-or through the web interface at L<http://rt.cpan.org>. I will be notified, and
-then you'll automatically be notified of progress on your bug as I make
-changes.
+Please report any bugs or feature requests through the web interface at
+L<http://rt.cpan.org>. I will be notified, and then you'll automatically be
+notified of progress on your bug as I make changes.
 
 =head1 COPYRIGHT
 
-Copyright 2006 Ricardo SIGNES.  This program is free software;  you can
+Copyright 2006-2007, Ricardo SIGNES.  This program is free software;  you can
 redistribute it and/or modify it under the same terms as Perl itself.
 
 =cut

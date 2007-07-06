@@ -3,19 +3,22 @@ use warnings;
 
 package Sub::Exporter::Util;
 
+use Data::OptList ();
+use Params::Util ();
+
 =head1 NAME
 
 Sub::Exporter::Util - utilities to make Sub::Exporter easier
 
 =head1 VERSION
 
-version 0.022
+version 0.975
 
-  $Id$
+  $Id: /my/cs/projects/Sub-Exporter/trunk/lib/Sub/Exporter/Util.pm 31990 2007-07-06T02:33:04.864653Z rjbs  $
 
 =cut
 
-our $VERSION = '0.022';
+our $VERSION = '0.975';
 
 =head1 DESCRIPTION
 
@@ -25,14 +28,14 @@ utilites may be exported, but none are by default.
 
 =head1 THE UTILITIES
 
-=head2 curry_class
+=head2 curry_method
 
   exports => {
-    some_method => curry_class,
+    some_method => curry_method,
   }
 
-This utility returns a generator which will produce a class-curried version of
-a method.  In other words, it will export a method call with the exporting
+This utility returns a generator which will produce an invocant-curried version
+of a method.  In other words, it will export a method call with the exporting
 class built in as the invocant.
 
 A module importing the code some the above example might do this:
@@ -50,20 +53,88 @@ This would be equivalent to:
 If Some::Module is subclassed and the subclass's import method is called to
 import C<some_method>, the subclass will be curried in as the invocant.
 
-If an argument is provided for C<curry_class> it is used as the name of the
+If an argument is provided for C<curry_method> it is used as the name of the
 curried method to export.  This means you could export a Widget constructor
 like this:
 
-  exports => { widget => curry_class('new') }
+  exports => { widget => curry_method('new') }
+
+This utility may also be called as C<curry_class>, for backwards compatibility.
 
 =cut
 
-sub curry_class {
+sub curry_method {
   my $override_name = shift;
   sub {
     my ($class, $name) = @_;
     $name = $override_name if defined $override_name;
     sub { $class->$name(@_); };
+  }
+}
+
+BEGIN { *curry_class = \&curry_method; }
+
+=head2 curry_chain
+
+C<curry_chain> behaves like C<L</curry_method>>, but is meant for generating
+exports that will call several methods in succession.
+
+  exports => {
+    reticulate => curry_chain([
+      new => gather_data => analyze => [ detail => 100 ] => results
+    ]),
+  }
+
+If imported from Spliner, calling the C<reticulate> routine will be equivalent
+to:
+
+  Splinter->new->gather_data->analyze(detail => 100)->results;
+
+If any method returns something on which methods may not be called, the routine
+croaks.
+
+The arguments to C<curry_chain> form an optlist.  The names are methods to be
+called and the arguments, if given, are arrayrefs to be dereferenced and passed
+as arguments to those methods.  C<curry_chain> returns a generator like those
+expected by Sub::Exporter.
+
+B<Achtung!> at present, there is no way to pass arguments from the generated
+routine to the method calls.  This will probably be solved in future revisions
+by allowing the opt list's values to be subroutines that will be called with
+the generated routine's stack.
+
+=cut
+
+sub curry_chain {
+  # In the future, we can make \%arg an optional prepend, like the "special"
+  # args to the default Sub::Exporter-generated import routine.
+  my (@opt_list) = @_;
+
+  my $pairs = Data::OptList::mkopt(\@opt_list, 'args', 'ARRAY');
+
+  sub {
+    my ($class) = @_;
+
+    sub {
+      my $next = $class;
+
+      for my $i (0 .. $#$pairs) {
+        my $pair = $pairs->[ $i ];
+        
+        unless (Params::Util::_INVOCANT($next)) { ## no critic Private
+          my $str = defined $next ? "'$next'" : 'undef';
+          Carp::croak("can't call $pair->[0] on non-invocant $str")
+        }
+
+        my ($method, $args) = @$pair;
+
+        if ($i == $#$pairs) {
+          return $next->$method($args ? @$args : ());
+        } else {
+          $next = $next->$method($args ? @$args : ());
+        }
+      }
+    };
   }
 }
 
@@ -211,7 +282,13 @@ sub like {
 }
 
 use Sub::Exporter -setup => {
-  exports => [ qw(like merge_col curry_class mixin_exporter) ]
+  exports => [ qw(
+    like
+    merge_col
+    curry_method curry_class
+    curry_chain
+    mixin_exporter
+  ) ]
 };
 
 =head1 AUTHOR
@@ -220,14 +297,13 @@ Ricardo SIGNES, C<< <rjbs@cpan.org> >>
 
 =head1 BUGS
 
-Please report any bugs or feature requests to C<bug-sub-exporter@rt.cpan.org>,
-or through the web interface at L<http://rt.cpan.org>. I will be notified, and
-then you'll automatically be notified of progress on your bug as I make
-changes.
+Please report any bugs or feature requests through the web interface at
+L<http://rt.cpan.org>. I will be notified, and then you'll automatically be
+notified of progress on your bug as I make changes.
 
 =head1 COPYRIGHT
 
-Copyright 2006 Ricardo SIGNES.  This program is free software;  you can
+Copyright 2006-2007, Ricardo SIGNES.  This program is free software;  you can
 redistribute it and/or modify it under the same terms as Perl itself.
 
 =cut

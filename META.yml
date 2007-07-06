@@ -1,7 +1,7 @@
 --- 
 author: Ricardo SIGNES <rjbs@cpan.org>
 distribution_type: module
-generated_by: Module::Install version 0.65
+generated_by: Module::Install version 0.67
 license: perl
 meta-spec: 
   url: http://module-build.sourceforge.net/META-spec-v1.3.html
@@ -15,4 +15,4 @@ requires:
   Data::OptList: 0.1
   Params::Util: 0.14
   Sub::Install: 0.92
-version: 0.974
+version: 0.975
