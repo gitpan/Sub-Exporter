@@ -14,13 +14,11 @@ Sub::Exporter - a sophisticated exporter for custom-built routines
 
 =head1 VERSION
 
-version 0.975
-
-  $Id: /my/cs/projects/Sub-Exporter/trunk/lib/Sub/Exporter.pm 31990 2007-07-06T02:33:04.864653Z rjbs  $
+version 0.976
 
 =cut
 
-our $VERSION = '0.975';
+our $VERSION = '0.976';
 
 =head1 SYNOPSIS
 
@@ -504,8 +502,6 @@ sub _collect_collections {
     Carp::croak "collection $name provided multiple times in import"
       if $seen{ $name }++;
 
-    $collection{ $name } = $value;
-
     if (ref(my $hook = $config->{collectors}{$name})) {
       my $arg = {
         name        => $name,
@@ -522,6 +518,8 @@ sub _collect_collections {
         Carp::croak $error_msg unless $hook->($value, $arg);
       }
     }
+
+    $collection{ $name } = $value;
   }
 
   return \%collection;
