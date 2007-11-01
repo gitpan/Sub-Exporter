@@ -14,11 +14,11 @@ Sub::Exporter - a sophisticated exporter for custom-built routines
 
 =head1 VERSION
 
-version 0.976
+version 0.977_01
 
 =cut
 
-our $VERSION = '0.976';
+our $VERSION = '0.977_01';
 
 =head1 SYNOPSIS
 
@@ -599,7 +599,7 @@ my %valid_config_key;
 BEGIN {
   %valid_config_key =
     map { $_ => 1 }
-    qw(collectors exporter exports groups into into_level)
+    qw(collectors exporter generator exports groups into into_level)
 }
 
 sub _rewrite_build_config {
@@ -662,9 +662,13 @@ sub build_exporter {
       : defined $config->{into_level}  ? caller($config->{into_level})
       :                                  caller(0);
 
-    my $export = delete $special->{exporter}
-              || $config->{exporter}
-              || \&default_exporter;
+    my $exporter = delete $special->{exporter}
+                || $config->{exporter}
+                || \&default_exporter;
+
+    my $generator = delete $special->{generator}
+                 || $config->{generator}
+                 || \&default_generator;
 
     # this builds a AOA, where the inner arrays are [ name => value_ref ]
     my $import_args = Data::OptList::mkopt([ @_ ]);
@@ -677,35 +681,68 @@ sub build_exporter {
     my $to_import = _expand_groups($class, $config, $import_args, $collection);
 
     # now, finally $import_arg is really the "to do" list
-    for (@$to_import) {
-      _do_import($class, @$_, $collection, $config, $into, $export);
-    }
+    _do_import(
+      {
+        class     => $class,
+        col       => $collection,
+        config    => $config,
+        into      => $into,
+        exporter  => $exporter,
+        generator => $generator,
+      },
+      $to_import,
+    );
   };
 
   return $import;
 }
 
 sub _do_import {
-  my ($class, $name, $arg, $collection, $config, $into, $export) = @_;
+  my ($arg, $to_import) = @_;
 
-  my ($generator, $as);
+  my @todo;
 
-  if ($arg and Params::Util::_CODELIKE($arg)) { ## no critic
-    # This is the case when a group generator has inserted name/code pairs.
-    $generator = sub { $arg };
-    $as = $name;
-  } else {
-    $arg = { $arg ? %$arg : () };
+  for my $pair (@$to_import) {
+    my ($name, $import_arg) = @$pair;
 
-    Carp::croak qq("$name" is not exported by the $class module)
-      unless (exists $config->{exports}{$name});
+    my ($generator, $as);
 
-    $generator = $config->{exports}{$name};
+    if ($import_arg and Params::Util::_CODELIKE($import_arg)) { ## no critic
+      # This is the case when a group generator has inserted name/code pairs.
+      $generator = sub { $import_arg };
+      $as = $name;
+    } else {
+      $import_arg = { $import_arg ? %$import_arg : () };
 
-    $as = exists $arg->{-as} ? (delete $arg->{-as}) : $name;
+      Carp::croak qq("$name" is not exported by the $arg->{class} module)
+        unless exists $arg->{config}{exports}{$name};
+
+      $generator = $arg->{config}{exports}{$name};
+
+      $as = exists $import_arg->{-as} ? (delete $import_arg->{-as}) : $name;
+    }
+
+    my $code = $arg->{generator}->(
+      { 
+        class     => $arg->{class},
+        name      => $name,
+        arg       => $import_arg,
+        col       => $arg->{col},
+        generator => $generator,
+      }
+    );
+
+    push @todo, $as, $code;
   }
 
-  $export->($class, $generator, $name, $arg, $collection, $as, $into);
+  $arg->{exporter}->(
+    {
+      class => $arg->{class},
+      into  => $arg->{into},
+      col   => $arg->{col},
+    },
+    \@todo,
+  );
 }
 
 # XXX: Consider implementing a _export_args routine that takes the arguments to
@@ -717,22 +754,47 @@ sub _do_import {
 =head2 default_exporter
 
 This is Sub::Exporter's default exporter.  It does what Sub::Exporter promises:
-it calls generators with the three normal arguments, then installs the code
-into the target package.
+it installs code into the target package.
 
 B<Warning!>  Its interface isn't really stable yet, so don't rely on it.  It's
 only named here so that you can pass it in to the exporter builder.  It will
 have a stable interface in the future so that it may be more easily replaced.
 
+
+  default_exporter(\%arg, \@to_export);
+
+Passed arguments are:
+
+  into - the package into which exports should be delivered
+
+C<@to_export> is a list of name/value pairs.  The default exporter assigns code
+(the values) to named slots (the names) in the given package.  If the name is a
+scalar reference, the scalar reference is made to point to the code reference
+instead.
+
 =cut
 
 sub default_exporter {
-  my ($class, $generator, $name, $arg, $collection, $as, $into) = @_;
-  _install(
-    _generate($class, $generator, $name, $arg, $collection),
-    $into,
-    $as,
-  );
+  my ($arg, $to_export) = @_;
+
+  for (my $i = 0; $i < @$to_export; $i += 2) {
+    my ($as, $code) = @$to_export[ $i, $i+1 ];
+
+    # Allow as isa ARRAY to push onto an array?
+    # Allow into isa HASH to install name=>code into hash?
+
+    if (ref $as eq 'SCALAR') {
+      $$as = $code;
+    } elsif (ref $as) {
+      Carp::croak "invalid reference type for $as: " . ref $as;
+    } else {
+      Sub::Install::reinstall_sub({
+        code => $code,
+        into => $arg->{into},
+        as   => $as
+      });
+    }
+  }
 }
 
 ## Cute idea, possibly for future use: also supply an "unimport" for:
@@ -750,8 +812,32 @@ sub default_exporter {
 #   }
 # }
 
-sub _generate {
-  my ($class, $generator, $name, $arg, $collection) = @_;
+=head2 default_generator
+
+This is Sub::Exporter's default generator.  It takes bits of configuration that
+have been gathered during the import and turns them into a coderef that can be
+installed.
+
+B<Warning!>  Its interface isn't really stable yet, so don't rely on it.  It's
+only named here so that you can pass it in to the exporter builder.  It will
+have a stable interface in the future so that it may be more easily replaced.
+
+  my $code = default_generator(\%arg);
+
+Passed arguments are:
+
+  class - the class on which the import method was called
+  name  - the name of the export being generated
+  arg   - the arguments to the generator
+  col   - the collections
+
+  generator - the generator to be used to build the export (code or scalar ref)
+
+=cut
+
+sub default_generator {
+  my ($arg) = @_;
+  my ($class, $name, $generator) = @$arg{qw(class name generator)};
 
   if (not defined $generator) {
     my $code = $class->can($name)
@@ -762,26 +848,12 @@ sub _generate {
   # I considered making this "$class->$generator(" but it seems that
   # overloading precedence would turn an overloaded-as-code generator object
   # into a string before code. -- rjbs, 2006-06-11
-  return $generator->($class, $name, $arg, $collection)
+  return $generator->($class, $name, $arg->{arg}, $arg->{col})
     if Params::Util::_CODELIKE($generator); ## no critic Private
 
   # This "must" be a scalar reference, to a generator method name.
   # -- rjbs, 2006-12-05
-  return $class->$$generator($name, $arg, $collection);
-}
-
-sub _install {
-  my ($code, $into, $as) = @_;
-  # Allow as isa ARRAY to push onto an array?
-  # Allow into isa HASH to install name=>code into hash?
-
-  if (ref $as eq 'SCALAR') {
-    $$as = $code;
-  } elsif (ref $as) {
-    Carp::croak "invalid reference type for $as: " . ref $as;
-  } else {
-    Sub::Install::reinstall_sub({ code => $code, into => $into, as => $as });
-  }
+  return $class->$$generator($name, $arg->{arg}, $arg->{col});
 }
 
 =head1 EXPORTS
