@@ -1,19 +1,21 @@
---- 
-author: 
-  - Ricardo SIGNES <rjbs@cpan.org>
+---
+abstract: 'a sophisticated exporter for custom-built routines'
+author:
+  - 'Ricardo SIGNES, C<< <rjbs@cpan.org> >>'
 distribution_type: module
-generated_by: Module::Install version 0.68
+generated_by: 'Module::Install version 0.71'
 license: perl
-meta-spec: 
+meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.3.html
   version: 1.3
 name: Sub-Exporter
-no_index: 
-  directory: 
+no_index:
+  directory:
     - inc
     - t
-requires: 
+requires:
   Data::OptList: 0.1
   Params::Util: 0.14
   Sub::Install: 0.92
-version: 0.978
+  perl: 5.6.0
+version: 0.979

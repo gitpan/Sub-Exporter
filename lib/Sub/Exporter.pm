@@ -1,7 +1,7 @@
-package Sub::Exporter;
-
+use 5.006;
 use strict;
 use warnings;
+package Sub::Exporter;
 
 use Carp ();
 use Data::OptList ();
@@ -14,11 +14,11 @@ Sub::Exporter - a sophisticated exporter for custom-built routines
 
 =head1 VERSION
 
-version 0.978
+version 0.979
 
 =cut
 
-our $VERSION = '0.978';
+our $VERSION = '0.979';
 
 =head1 SYNOPSIS
 
@@ -349,6 +349,11 @@ hashref containing the following entries:
   class       - the package on which the importer was called
   into        - the package into which exports will be exported
 
+Collectors with all-caps names (that is, made up of underscore or capital A
+through Z) are reserved for special use.  The only currently implemented
+special collector is C<INIT>, whose hook (if present in the exporter
+configuration) is always run before any other hook.
+
 =head1 CALLING THE EXPORTER
 
 Arguments to the exporter (that is, the arguments after the module name in a
@@ -506,19 +511,13 @@ sub _expand_group {
   }
 }
 
-# Given a config and pre-canonicalized importer args, remove collections from
-# the args and return them.
-sub _collect_collections {
-  my ($config, $import_args, $class, $into) = @_;
-  my %collection;
-
-  my @collections
-    = map  { splice @$import_args, $_, 1 }
-      grep { exists $config->{collectors}{ $import_args->[$_][0] } }
-      reverse 0 .. $#$import_args;
+sub _mk_collection_builder {
+  my ($col, $etc) = @_;
+  my ($config, $import_args, $class, $into) = @$etc;
 
   my %seen;
-  for my $collection (@collections) {
+  sub {
+    my ($collection) = @_;
     my ($name, $value) = @$collection;
 
     Carp::croak "collection $name provided multiple times in import"
@@ -541,10 +540,29 @@ sub _collect_collections {
       }
     }
 
-    $collection{ $name } = $value;
+    $col->{ $name } = $value;
+  }
+}
+
+# Given a config and pre-canonicalized importer args, remove collections from
+# the args and return them.
+sub _collect_collections {
+  my ($config, $import_args, $class, $into) = @_;
+
+  my @collections
+    = map  { splice @$import_args, $_, 1 }
+      grep { exists $config->{collectors}{ $import_args->[$_][0] } }
+      reverse 0 .. $#$import_args;
+
+  unshift @collections, [ INIT => {} ] if $config->{collectors}{INIT};
+
+  my $col = {};
+  my $builder = _mk_collection_builder($col, \@_);
+  for my $collection (@collections) {
+    $builder->($collection)
   }
 
-  return \%collection;
+  return $col;
 }
 
 =head1 SUBROUTINES
@@ -575,7 +593,7 @@ The exporter is built by C<L</build_exporter>>.
 sub setup_exporter {
   my ($config)  = @_;
 
-  Carp::croak q(into and into_level may not both be supplied to exporter)
+  Carp::croak 'into and into_level may not both be supplied to exporter'
     if exists $config->{into} and exists $config->{into_level};
 
   my $as   = delete $config->{as}   || 'import';
@@ -618,8 +636,17 @@ my %valid_config_key;
 BEGIN {
   %valid_config_key =
     map { $_ => 1 }
-    qw(collectors installer generator exports groups into into_level),
+    qw(as collectors installer generator exports groups into into_level),
     qw(exporter), # deprecated
+}
+
+sub _assert_collector_names_ok {
+  my ($collectors) = @_;
+
+  for my $reserved_name (grep { /\A[_A-Z]+\z/ } keys %$collectors) {
+    Carp::croak "unknown reserved collector name: $reserved_name"
+      if $reserved_name ne 'INIT';
+  }
 }
 
 sub _rewrite_build_config {
@@ -648,6 +675,8 @@ sub _rewrite_build_config {
       [ 'CODE', 'SCALAR' ],
     );
   }
+
+  _assert_collector_names_ok($config->{collectors});
 
   if (my @names = _key_intersection(@$config{qw(exports collectors)})) {
     Carp::croak "names (@names) used in both collections and exports";
@@ -882,7 +911,23 @@ sub default_exporter {
 
 Sub::Exporter also offers its own exports: the C<setup_exporter> and
 C<build_exporter> routines described above.  It also provides a special "setup"
-group, which will setup an exporter using the parameters passed to it.
+collector, which will set up an exporter using the parameters passed to it.
+
+Note that the "setup" collector (seen in examples like the L</SYNOPSIS> above)
+uses C<build_exporter>, not C<setup_exporter>.  This means that the special
+arguments like "into" and "as" for C<setup_exporter> are not accepted here.
+Instead, you may write something like:
+
+  use Sub::Exporter
+    { into => 'Target::Package' },
+    -setup => {
+      -as     => 'do_import',
+      exports => [ ... ],
+    }
+  ;
+
+Finding a good reason for wanting to do this is left as as exercise for the
+reader.
 
 =cut
 
