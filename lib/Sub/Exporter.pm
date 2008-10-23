@@ -14,11 +14,11 @@ Sub::Exporter - a sophisticated exporter for custom-built routines
 
 =head1 VERSION
 
-version 0.980
+version 0.981
 
 =cut
 
-our $VERSION = '0.980';
+our $VERSION = '0.981';
 
 =head1 SYNOPSIS
 
@@ -28,7 +28,7 @@ Sub::Exporter must be used in two places.  First, in an exporting module:
   package Text::Tweaker;
   use Sub::Exporter -setup => {
     exports => [
-      qw(squish titlecase) # always works the same way
+      qw(squish titlecase), # always works the same way
       reformat => \&build_reformatter, # generator to build exported function
       trim     => \&build_trimmer,
       indent   => \&build_indenter,
