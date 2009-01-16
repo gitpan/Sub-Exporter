@@ -21,4 +21,5 @@ requires:
   perl: 5.6.0
 resources:
   license: http://dev.perl.org/licenses/
-version: 0.981
+  repository: http://github.com/rjbs/sub-exporter
+version: 0.982
