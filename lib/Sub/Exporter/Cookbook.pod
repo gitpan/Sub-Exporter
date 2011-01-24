@@ -1,7 +1,20 @@
 
+
+# ABSTRACT: useful, demonstrative, or stupid Sub::Exporter tricks
+# PODNAME: Sub::Exporter::Cookbook
+
+
+
+__END__
+=pod
+
 =head1 NAME
 
 Sub::Exporter::Cookbook - useful, demonstrative, or stupid Sub::Exporter tricks
+
+=head1 VERSION
+
+version 0.983
 
 =head1 OVERVIEW
 
@@ -11,6 +24,8 @@ simple goals.  Its basic behaviors and their basic application (that is,
 L<Sub::Exporter::Tutorial> and L<Sub::Exporter>.  This document presents
 applications that may not be immediately obvious, or that can demonstrate how
 certain features can be put to use (for good or evil).
+
+=head1 NAME
 
 =head1 THE RECIPES
 
@@ -170,11 +185,13 @@ export constants by using one of its sister modules, Package::Generator.
     Package::Generator->assign_symbols(
       $data->{into},
       [
-        MEANING_OF_LIFE => 42,
-        ONE_TRUE_BASE   => 13,
+        MEANING_OF_LIFE => \42,
+        ONE_TRUE_BASE   => \13,
         FACTORS         => [ 6, 9 ],
       ],
     );
+
+    return 1;
   }
 
 Then, someone can write:
@@ -185,7 +202,7 @@ Then, someone can write:
 
 (The constants must be exported via a collector, because they are effectively
 altering the importing class in a way other than installing subroutines.)
- 
+
 =head2 Altering the Importer's @ISA
 
 It's trivial to make a collector that changes the inheritence of an importing
@@ -214,8 +231,8 @@ also want to inherit behavior from some base plugin class;
 
   use Sub::Exporter -setup => {
     exports    => [ qw(log global_config) ],
-    collectors => { _become_plugin => \'_become_plugin' },
-    groups     => [ -plugin => [ qw(log global_config _become_plugin) ]
+    groups     => [ _plugin => [ qw(log global_config) ]
+    collectors => { '-plugin' => \'_become_plugin' },
   };
 
   sub _become_plugin {
@@ -223,6 +240,8 @@ also want to inherit behavior from some base plugin class;
 
     my $target = $data->{into};
     push @{"$target\::ISA"}, $class->plugin_base_class;
+
+    push @{ $data->{import_args} }, '-_plugin';
   }
 
 Now, you can write a plugin like this:
@@ -279,10 +298,14 @@ exported, the new package may be subclassed and some of its exports replaced.
 
 =head1 AUTHOR
 
-Ricardo SIGNES, C<< <rjbs@cpan.org> >>
+Ricardo Signes <rjbs@cpan.org>
 
-=head1 COPYRIGHT
+=head1 COPYRIGHT AND LICENSE
 
-Copyright 2007, Ricardo SIGNES.  This is free software;  you can redistribute
-it and/or modify it under the same terms as Perl itself.
+This software is copyright (c) 2007 by Ricardo Signes.
+
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
+
+=cut
 

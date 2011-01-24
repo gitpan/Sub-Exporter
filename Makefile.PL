@@ -1,14 +1,59 @@
-use inc::Module::Install;
 
-all_from      ('lib/Sub/Exporter.pm');
+use strict;
+use warnings;
 
-requires('Sub::Install'  => 0.92 ); # exporter, needed to actually export
-requires('Data::OptList' => 0.100); # used to process options
-requires('Params::Util'  => 0.14 ); # _CODELIKE
+BEGIN { require 5.006; }
 
-extra_tests;
+use ExtUtils::MakeMaker 6.31;
 
-repository('http://github.com/rjbs/sub-exporter');
-auto_manifest;
 
-WriteAll();
+
+my %WriteMakefileArgs = (
+  'ABSTRACT' => 'a sophisticated exporter for custom-built routines',
+  'AUTHOR' => 'Ricardo Signes <rjbs@cpan.org>',
+  'BUILD_REQUIRES' => {
+    'Exporter' => '0',
+    'Test::More' => '0.96',
+    'overload' => '0',
+    'subs' => '0'
+  },
+  'CONFIGURE_REQUIRES' => {
+    'ExtUtils::MakeMaker' => '6.31'
+  },
+  'DISTNAME' => 'Sub-Exporter',
+  'EXE_FILES' => [],
+  'LICENSE' => 'perl',
+  'NAME' => 'Sub::Exporter',
+  'PREREQ_PM' => {
+    'Carp' => '0',
+    'Data::OptList' => '0.100',
+    'Params::Util' => '0.14',
+    'Sub::Install' => '0.92'
+  },
+  'VERSION' => '0.983',
+  'test' => {
+    'TESTS' => 't/*.t'
+  }
+);
+
+
+unless ( eval { ExtUtils::MakeMaker->VERSION(6.56) } ) {
+  my $br = delete $WriteMakefileArgs{BUILD_REQUIRES};
+  my $pp = $WriteMakefileArgs{PREREQ_PM};
+  for my $mod ( keys %$br ) {
+    if ( exists $pp->{$mod} ) {
+      $pp->{$mod} = $br->{$mod} if $br->{$mod} > $pp->{$mod};
+    }
+    else {
+      $pp->{$mod} = $br->{$mod};
+    }
+  }
+}
+
+delete $WriteMakefileArgs{CONFIGURE_REQUIRES}
+  unless eval { ExtUtils::MakeMaker->VERSION(6.52) };
+
+WriteMakefile(%WriteMakefileArgs);
+
+
+
