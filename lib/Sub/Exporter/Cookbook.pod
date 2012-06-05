@@ -1,5 +1,4 @@
 
-
 # ABSTRACT: useful, demonstrative, or stupid Sub::Exporter tricks
 # PODNAME: Sub::Exporter::Cookbook
 
@@ -14,7 +13,7 @@ Sub::Exporter::Cookbook - useful, demonstrative, or stupid Sub::Exporter tricks
 
 =head1 VERSION
 
-version 0.983
+version 0.984
 
 =head1 OVERVIEW
 
@@ -24,8 +23,6 @@ simple goals.  Its basic behaviors and their basic application (that is,
 L<Sub::Exporter::Tutorial> and L<Sub::Exporter>.  This document presents
 applications that may not be immediately obvious, or that can demonstrate how
 certain features can be put to use (for good or evil).
-
-=head1 NAME
 
 =head1 THE RECIPES
 
@@ -37,7 +34,7 @@ L<Sub::Exporter::Util>, a method can be exported with the invocant built in.
 
   package Object::Strenuous;
 
-  use Sub::Exporter::Util;
+  use Sub::Exporter::Util 'curry_method';
   use Sub::Exporter -setup => {
     exports => [ objection => curry_method('new') ],
   };
@@ -62,11 +59,12 @@ Finally, since the invocant can be an object, you can write something like
 this:
 
   package Cypher;
+  use Sub::Exporter::Util 'curry_method';
   use Sub::Exporter -setup => {
     exports => [ encypher => curry_method ],
   };
 
-with the expectation that C<import> will be called an instantiated Cypher
+with the expectation that C<import> will be called on an instantiated Cypher
 object:
 
   BEGIN {
@@ -205,7 +203,7 @@ altering the importing class in a way other than installing subroutines.)
 
 =head2 Altering the Importer's @ISA
 
-It's trivial to make a collector that changes the inheritence of an importing
+It's trivial to make a collector that changes the inheritance of an importing
 package:
 
   use Sub::Exporter -setup => {

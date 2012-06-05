@@ -2,8 +2,8 @@ use 5.006;
 use strict;
 use warnings;
 package Sub::Exporter;
-BEGIN {
-  $Sub::Exporter::VERSION = '0.983'; # TRIAL
+{
+  $Sub::Exporter::VERSION = '0.984';
 }
 # ABSTRACT: a sophisticated exporter for custom-built routines
 
@@ -492,7 +492,7 @@ Sub::Exporter - a sophisticated exporter for custom-built routines
 
 =head1 VERSION
 
-version 0.983
+version 0.984
 
 =head1 SYNOPSIS
 
@@ -609,7 +609,7 @@ Consider the following code:
   use Morality qw(sin virtue); # for calculating viciousness
   use Math::Trig qw(:all);     # for dealing with circles
 
-The programmer has inadvertantly imported two C<sin> routines.  The solution,
+The programmer has inadvertently imported two C<sin> routines.  The solution,
 in Exporter.pm-based modules, would be to import only one and then call the
 other by its fully-qualified name.  Alternately, the importer could write a
 routine that did so, or could mess about with typeglobs.
@@ -1074,7 +1074,7 @@ variables for its configuration.
 =head1 THANKS
 
 Hans Dieter Pearcey provided helpful advice while I was writing Sub::Exporter.
-Ian Langworth and Shawn Sorichetti asked some good questions and hepled me
+Ian Langworth and Shawn Sorichetti asked some good questions and helped me
 improve my documentation quite a bit.  Yuval Kogman helped me find a bunch of
 little problems.
 

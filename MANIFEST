@@ -27,7 +27,6 @@ t/lib/Test/SubExporter/s_e.pm
 t/real-export-groupgen.t
 t/real-export-href.t
 t/real-export-setup.t
-t/release-pod-syntax.t
 t/util-curry.t
 t/util-currychain.t
 t/util-like.t
@@ -35,3 +34,4 @@ t/util-merge.t
 t/util-mixin.t
 t/util-namemap.t
 t/valid-config.t
+xt/release/pod-syntax.t

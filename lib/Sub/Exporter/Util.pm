@@ -1,8 +1,8 @@
 use strict;
 use warnings;
 package Sub::Exporter::Util;
-BEGIN {
-  $Sub::Exporter::Util::VERSION = '0.983'; # TRIAL
+{
+  $Sub::Exporter::Util::VERSION = '0.984';
 }
 # ABSTRACT: utilities to make Sub::Exporter easier
 
@@ -217,7 +217,7 @@ Sub::Exporter::Util - utilities to make Sub::Exporter easier
 
 =head1 VERSION
 
-version 0.983
+version 0.984
 
 =head1 DESCRIPTION
 

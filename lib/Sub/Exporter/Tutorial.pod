@@ -1,5 +1,4 @@
 
-
 # PODNAME: Sub::Exporter::Tutorial
 # ABSTRACT: a friendly guide to exporting with Sub::Exporter
 
@@ -13,7 +12,7 @@ Sub::Exporter::Tutorial - a friendly guide to exporting with Sub::Exporter
 
 =head1 VERSION
 
-version 0.983
+version 0.984
 
 =head1 DESCRIPTION
 
@@ -255,8 +254,6 @@ way they can share lexical data which is otherwise unavailable.  To do this,
 you can supply a generator for a group which returns a hashref of names and
 code references.  This generator is passed all the usual data, and the group
 may receive the usual C<-prefix> or C<-suffix> arguments.
-
-=head1 NAME
 
 =head1 SEE ALSO
 
