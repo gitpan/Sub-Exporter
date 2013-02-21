@@ -13,6 +13,8 @@ my %WriteMakefileArgs = (
   "AUTHOR" => "Ricardo Signes <rjbs\@cpan.org>",
   "BUILD_REQUIRES" => {
     "Exporter" => 0,
+    "File::Find" => 0,
+    "File::Temp" => 0,
     "Test::More" => "0.96",
     "base" => 0,
     "overload" => 0,
@@ -33,7 +35,7 @@ my %WriteMakefileArgs = (
     "strict" => 0,
     "warnings" => 0
   },
-  "VERSION" => "0.984",
+  "VERSION" => "0.985",
   "test" => {
     "TESTS" => "t/*.t"
   }
