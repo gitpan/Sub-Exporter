@@ -29,14 +29,16 @@ my %WriteMakefileArgs = (
   },
   "TEST_REQUIRES" => {
     "Exporter" => 0,
-    "File::Find" => 0,
-    "File::Temp" => 0,
+    "File::Spec" => 0,
+    "IO::Handle" => 0,
+    "IPC::Open3" => 0,
     "Test::More" => "0.96",
     "base" => 0,
+    "lib" => 0,
     "overload" => 0,
     "subs" => 0
   },
-  "VERSION" => "0.986",
+  "VERSION" => "0.987",
   "test" => {
     "TESTS" => "t/*.t"
   }

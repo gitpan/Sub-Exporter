@@ -3,7 +3,7 @@ use strict;
 use warnings;
 package Sub::Exporter;
 {
-  $Sub::Exporter::VERSION = '0.986';
+  $Sub::Exporter::VERSION = '0.987';
 }
 # ABSTRACT: a sophisticated exporter for custom-built routines
 
@@ -493,7 +493,7 @@ Sub::Exporter - a sophisticated exporter for custom-built routines
 
 =head1 VERSION
 
-version 0.986
+version 0.987
 
 =head1 SYNOPSIS
 

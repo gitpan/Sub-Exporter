@@ -2,7 +2,7 @@ use strict;
 use warnings;
 package Sub::Exporter::Util;
 {
-  $Sub::Exporter::Util::VERSION = '0.986';
+  $Sub::Exporter::Util::VERSION = '0.987';
 }
 # ABSTRACT: utilities to make Sub::Exporter easier
 
@@ -218,7 +218,7 @@ Sub::Exporter::Util - utilities to make Sub::Exporter easier
 
 =head1 VERSION
 
-version 0.986
+version 0.987
 
 =head1 DESCRIPTION
 
